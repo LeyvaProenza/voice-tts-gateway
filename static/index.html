@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice-TTS Gateway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎙️</text></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-wand-magic-sparkles logo-icon"></i>
+                <h1>Voice-TTS <span>Gateway</span></h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="app-main">
+
+            <!-- Section 1: Server Control -->
+            <section class="panel" id="server-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-server"></i> Servidor XTTS</h2>
+                    <div id="tts-status" class="status-badge status-disconnected">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Apagado</span>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <p class="panel-desc">Controla el motor de clonacion de voz local. El modelo XTTSv2 usa tu GPU RTX 3050 con CUDA.</p>
+                    <div class="server-actions">
+                        <button id="btn-start" class="btn btn-success">
+                            <i class="fa-solid fa-play"></i> Encender Servidor
+                        </button>
+                        <button id="btn-stop" class="btn btn-danger-outline">
+                            <i class="fa-solid fa-stop"></i> Apagar Servidor
+                        </button>
+                        <button id="btn-refresh" class="btn btn-ghost" title="Verificar estado">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+                    <!-- Server Log Viewer -->
+                    <details class="log-viewer">
+                        <summary><i class="fa-solid fa-terminal"></i> Ver Log del Servidor</summary>
+                        <pre id="server-log">Sin datos de log...</pre>
+                        <button id="btn-refresh-log" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrows-rotate"></i> Actualizar Log</button>
+                    </details>
+                </div>
+            </section>
+
+            <!-- Section 2: Voice Management -->
+            <section class="panel" id="voices-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-microphone"></i> Voces de Referencia</h2>
+                </div>
+                <div class="panel-body">
+                    <p class="panel-desc">Sube archivos <code>.wav</code> cortos (3-10 seg) con una voz limpia. Estos se usan como referencia para clonar la voz.</p>
+
+                    <!-- Dropzone -->
+                    <div id="dropzone" class="dropzone">
+                        <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                        <p class="dropzone-text">Arrastra un <strong>.wav</strong> aqui o haz clic para subir</p>
+                        <input type="file" id="speaker-file-input" accept=".wav" multiple style="display: none;">
+                    </div>
+                    <div id="upload-status" class="upload-status-text"></div>
+
+                    <!-- Voice List -->
+                    <div id="voice-list" class="voice-list">
+                        <div class="voice-list-empty">
+                            <i class="fa-solid fa-volume-xmark"></i>
+                            <span>No hay voces cargadas</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: API Info + Test -->
+            <section class="panel" id="api-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-plug"></i> API para Antigravity</h2>
+                </div>
+                <div class="panel-body">
+                    <p class="panel-desc">Antigravity puede enviar texto a este endpoint y recibir audio WAV directamente.</p>
+
+                    <div class="api-doc">
+                        <div class="api-endpoint">
+                            <span class="api-method">POST</span>
+                            <code id="api-url">http://localhost:8000/api/tts</code>
+                            <button class="btn btn-ghost btn-sm" id="btn-copy-url" title="Copiar URL"><i class="fa-solid fa-copy"></i></button>
+                        </div>
+                        <div class="api-payload">
+                            <label>Request Body Mínimo (Requerido):</label>
+<pre>{
+  "text": "Texto a sintetizar",
+  "speaker_wav": "<span id="api-speaker-name">mi_voz.wav</span>",
+  "language": "es"
+}</pre>
+                            <label style="margin-top: 10px; display: block;">Parámetros Opcionales (Avanzados):</label>
+                            <p style="font-size: 0.85em; opacity: 0.8; margin-bottom: 5px;">Se aplican automáticamente si no los incluyes en la petición:</p>
+<pre>{
+  "temperature": 0.75,
+  "length_penalty": 1.0,
+  "repetition_penalty": 5.0,
+  "top_k": 50,
+  "top_p": 0.85
+}</pre>
+                        </div>
+                        <div class="api-response">
+                            <label>Response:</label>
+                            <p><code>audio/wav</code> &mdash; Bytes del audio WAV directamente. Guardar como archivo <code>.wav</code>.</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Test -->
+                    <div class="test-area">
+                        <h3><i class="fa-solid fa-flask"></i> Prueba Rapida</h3>
+                        <div class="test-row">
+                            <div class="form-group">
+                                <label for="test-speaker">Voz:</label>
+                                <div class="select-wrapper">
+                                    <select id="test-speaker">
+                                        <option value="">-- selecciona --</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="test-lang">Idioma:</label>
+                                <div class="select-wrapper">
+                                    <select id="test-lang">
+                                        <option value="es" selected>es</option>
+                                        <option value="en">en</option>
+                                        <option value="fr">fr</option>
+                                        <option value="de">de</option>
+                                        <option value="pt">pt</option>
+                                        <option value="it">it</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="test-text">Texto:</label>
+                            <textarea id="test-text" rows="2" placeholder="Escribe un texto corto de prueba...">Hola, esta es una prueba de clonacion de voz.</textarea>
+                        </div>
+
+                        <!-- Advanced Parameters -->
+                        <details class="test-settings-details">
+                            <summary><i class="fa-solid fa-sliders"></i> Ajustes Avanzados de Voz (Opcionales)</summary>
+                            <div class="settings-grid">
+                                <div class="form-group">
+                                    <label for="test-temp">Temperatura: <span id="val-temp">0.75</span></label>
+                                    <input type="range" id="test-temp" min="0.1" max="1.5" step="0.05" value="0.75">
+                                    <span class="field-help">Mayor = más expresiva/inestable. Menor = más monótona/estable.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="test-length-penalty">Length Penalty: <span id="val-len-penalty">1.0</span></label>
+                                    <input type="range" id="test-length-penalty" min="0.1" max="2.0" step="0.05" value="1.0">
+                                    <span class="field-help">Mayor = habla más lento/pausado. Menor = habla más rápido.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="test-rep-penalty">Repetition Penalty: <span id="val-rep-penalty">5.0</span></label>
+                                    <input type="range" id="test-rep-penalty" min="1.0" max="15.0" step="0.1" value="5.0">
+                                    <span class="field-help">Evita que la voz repita sílabas o se trabe en bucles.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="test-top-k">Top K: <span id="val-top-k">50</span></label>
+                                    <input type="range" id="test-top-k" min="1" max="200" step="1" value="50">
+                                    <span class="field-help">Filtra la diversidad de tonos (menor = más predecible/estable).</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="test-top-p">Top P: <span id="val-top-p">0.85</span></label>
+                                    <input type="range" id="test-top-p" min="0.1" max="1.0" step="0.05" value="0.85">
+                                    <span class="field-help">Delimita fonemas (mantiene el sonido natural).</span>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="test-remove-ceceo" checked>
+                                        Quitar ceceo español (Seseo latino)
+                                    </label>
+                                </div>
+                            </div>
+                        </details>
+
+                        <div class="test-actions">
+                            <button id="btn-test" class="btn btn-primary">
+                                <i class="fa-solid fa-bolt"></i> Generar Prueba
+                            </button>
+                            <span id="test-status" class="test-status"></span>
+                        </div>
+                        <!-- Audio preview -->
+                        <div id="test-audio-container" class="test-audio-container" style="display:none;">
+                            <audio id="test-audio" controls></audio>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

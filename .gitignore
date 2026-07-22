@@ -1,0 +1,32 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and runtime data
+*.log
+tts_server.log
+
+# Large model weights (XTTS model files ~2.4GB - downloaded automatically)
+models/*
+!models/.gitkeep
+
+# Output audio files generated during synthesis
+output/*
+!output/.gitkeep
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
