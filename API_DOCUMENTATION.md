@@ -226,17 +226,31 @@ curl -X POST http://localhost:8000/api/tts \
 
 ## 🎯 5. Catálogo Completo de Voces
 
-### 🇲🇽 Español (Microsoft Edge Neural)
-* **`es-MX-JorgeNeural`** *(⭐ Recomendado Docente Masculino)*: Tono sereno, claro y explicativo.
-* **`es-MX-DaliaNeural`** *(⭐ Recomendada Docente Femenina)*: Expresiva, cálida y didáctica.
-* `es-CO-GonzaloNeural` *(Colombia, masculino neutro y formal).*
-* `es-CO-SalomeNeural` *(Colombia, femenino pausado).*
-* `es-AR-TomasNeural` *(Argentina, locución segura).*
-* `es-CL-CatalinaNeural` *(Chile, didáctica y expresiva).*
-* `es-US-AlonsoNeural` *(Latino Neutro EE.UU., dinámico).*
-* `es-US-PalomaNeural` *(Latino Neutro EE.UU., joven y fresco).*
-* `es-ES-AlvaroNeural` *(España peninsular formal).*
-* `es-ES-ElviraNeural` *(España peninsular clásico).*
+### 🇪🇸 / 🇲🇽 Español (Doble Motor: Kokoro AI en GPU + Microsoft Edge Neural)
+
+#### ⭐ Mezclas Educativas Kokoro en Español (Procesadas en GPU)
+* **`ef_dora,af_sarah`** *(⭐ Mezcla Educativa Estrella)*: Pronunciación en español de Dora combinada con la calidez y cadencia pedagógica de Sarah.
+* **`ef_dora,af_bella`**: Dicción enérgica y consonantes claras para tutoriales paso a paso.
+* **`ef_dora,em_alex`**: Mezcla dual hispana armónica (femenino + masculino).
+
+#### Kokoro AI Español Nativo (GPU)
+* `ef_dora`: Voz femenina nativa de Kokoro en español.
+* `em_alex`: Voz masculina nativa de Kokoro en español.
+
+#### Microsoft Edge Neural (Hispanoamérica y España)
+* **`es-MX-JorgeNeural`** *(⭐ Recomendado Docente México)*: Tono sereno, pedagógico y claro.
+* **`es-MX-DaliaNeural`** *(⭐ Recomendada Docente México)*: Expresiva, cálida y didáctica.
+* `es-CO-GonzaloNeural` / `es-CO-SalomeNeural` *(Colombia)*
+* `es-PE-AlexNeural` / `es-PE-CamilaNeural` *(Perú)*
+* `es-AR-TomasNeural` / `es-AR-ElenaNeural` *(Argentina)*
+* `es-CL-LorenzoNeural` / `es-CL-CatalinaNeural` *(Chile)*
+* `es-VE-SebastianNeural` / `es-VE-PaolaNeural` *(Venezuela)*
+* `es-EC-LuisNeural` / `es-EC-AndreaNeural` *(Ecuador y Región Andina)*
+* `es-UY-MateoNeural` / `es-UY-ValentinaNeural` *(Uruguay)*
+* `es-CR-JuanNeural` / `es-CR-MariaNeural` *(Costa Rica)*
+* `es-PR-VictorNeural` / `es-PR-KarinaNeural` *(Puerto Rico)*
+* `es-US-AlonsoNeural` / `es-US-PalomaNeural` *(Latino Neutro EE.UU.)*
+* `es-ES-AlvaroNeural` / `es-ES-ElviraNeural` / `es-ES-XimenaNeural` *(España Peninsular)*
 
 ### 🇺🇸 Inglés (Kokoro-82M AI en GPU)
 

@@ -40,12 +40,65 @@ os.makedirs(SPEAKERS_DIR, exist_ok=True)
 
 VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
     "es": [
+        # --- MEZCLAS EDUCATIVAS KOKORO EN ESPAÑOL (GPU) ---
+        {
+            "id": "ef_dora,af_sarah",
+            "name": "Dora & Sarah (Mezcla Educativa)",
+            "gender": "Femenino",
+            "accent": "Hispano-American Blend",
+            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
+            "recommended": True,
+            "description": "Pronunciación en español de Dora combinada con la calidez pedagógica y cadencia de Sarah. Procesado 100% en GPU.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "ef_dora,af_bella",
+            "name": "Dora & Bella (Mezcla Dinámica)",
+            "gender": "Femenino",
+            "accent": "Hispano-American Blend",
+            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
+            "recommended": False,
+            "description": "Dicción viva con consonantes claras para tutoriales técnicos paso a paso.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "ef_dora,em_alex",
+            "name": "Dora & Alex (Mezcla Dual Hispana)",
+            "gender": "Híbrido",
+            "accent": "Hispano Blend",
+            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
+            "recommended": False,
+            "description": "Fusión armónica de tonos femenino y masculino nativos en español.",
+            "engine": "kokoro"
+        },
+        # --- KOKORO AI ESPAÑOL NATIVO (GPU) ---
+        {
+            "id": "ef_dora",
+            "name": "Dora (Kokoro GPU)",
+            "gender": "Femenino",
+            "accent": "Español",
+            "category": "Kokoro AI Español (GPU)",
+            "recommended": False,
+            "description": "Voz femenina nativa de Kokoro en español ejecutada en local en tu GPU.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "em_alex",
+            "name": "Alex (Kokoro GPU)",
+            "gender": "Masculino",
+            "accent": "Español",
+            "category": "Kokoro AI Español (GPU)",
+            "recommended": False,
+            "description": "Voz masculina nativa de Kokoro en español ejecutada en GPU.",
+            "engine": "kokoro"
+        },
+        # --- MICROSOFT EDGE NEURAL (HISPANOAMÉRICA) ---
         {
             "id": "es-MX-JorgeNeural",
             "name": "Jorge (Recomendado)",
             "gender": "Masculino",
             "accent": "México",
-            "category": "Latinoamérica",
+            "category": "México (Edge Neural)",
             "recommended": True,
             "description": "Tono sereno, cálido y explicativo. Dicción impecable para docencia y tutoriales.",
             "engine": "edge-tts"
@@ -55,7 +108,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Dalia (Recomendada)",
             "gender": "Femenino",
             "accent": "México",
-            "category": "Latinoamérica",
+            "category": "México (Edge Neural)",
             "recommended": True,
             "description": "Voz clara, empática y natural, excelente para exposiciones y material formativo.",
             "engine": "edge-tts"
@@ -65,7 +118,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Gonzalo",
             "gender": "Masculino",
             "accent": "Colombia",
-            "category": "Latinoamérica",
+            "category": "Colombia (Edge Neural)",
             "recommended": False,
             "description": "Acento neutro y formal, ideal para lecturas académicas o científicas.",
             "engine": "edge-tts"
@@ -75,9 +128,29 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Salomé",
             "gender": "Femenino",
             "accent": "Colombia",
-            "category": "Latinoamérica",
+            "category": "Colombia (Edge Neural)",
             "recommended": False,
             "description": "Tono pausado y suave, muy adecuado para audiolibros educativos.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-PE-AlexNeural",
+            "name": "Alex",
+            "gender": "Masculino",
+            "accent": "Perú",
+            "category": "Perú (Edge Neural)",
+            "recommended": False,
+            "description": "Locución clara, pausada y con acento andino formal.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-PE-CamilaNeural",
+            "name": "Camila",
+            "gender": "Femenino",
+            "accent": "Perú",
+            "category": "Perú (Edge Neural)",
+            "recommended": False,
+            "description": "Tono empático, suave y de excelente articulación.",
             "engine": "edge-tts"
         },
         {
@@ -85,9 +158,29 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Tomás",
             "gender": "Masculino",
             "accent": "Argentina",
-            "category": "Latinoamérica",
+            "category": "Argentina (Edge Neural)",
             "recommended": False,
-            "description": "Locución segura y profesional.",
+            "description": "Locución segura, moderna y profesional.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-AR-ElenaNeural",
+            "name": "Elena",
+            "gender": "Femenino",
+            "accent": "Argentina",
+            "category": "Argentina (Edge Neural)",
+            "recommended": False,
+            "description": "Voz expresiva, viva y clara.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-CL-LorenzoNeural",
+            "name": "Lorenzo",
+            "gender": "Masculino",
+            "accent": "Chile",
+            "category": "Chile (Edge Neural)",
+            "recommended": False,
+            "description": "Locución sobria y formal.",
             "engine": "edge-tts"
         },
         {
@@ -95,9 +188,109 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Catalina",
             "gender": "Femenino",
             "accent": "Chile",
-            "category": "Latinoamérica",
+            "category": "Chile (Edge Neural)",
             "recommended": False,
             "description": "Voz limpia, expresiva y didáctica.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-VE-SebastianNeural",
+            "name": "Sebastián",
+            "gender": "Masculino",
+            "accent": "Venezuela",
+            "category": "Venezuela (Edge Neural)",
+            "recommended": False,
+            "description": "Tono cálido, amigable y fluido.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-VE-PaolaNeural",
+            "name": "Paola",
+            "gender": "Femenino",
+            "accent": "Venezuela",
+            "category": "Venezuela (Edge Neural)",
+            "recommended": False,
+            "description": "Voz fresca, cercana y entusiasta.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-EC-LuisNeural",
+            "name": "Luis",
+            "gender": "Masculino",
+            "accent": "Ecuador",
+            "category": "Ecuador y Región Andina",
+            "recommended": False,
+            "description": "Dicción limpia y neutral.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-EC-AndreaNeural",
+            "name": "Andrea",
+            "gender": "Femenino",
+            "accent": "Ecuador",
+            "category": "Ecuador y Región Andina",
+            "recommended": False,
+            "description": "Tono educativo sereno y paciente.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-UY-MateoNeural",
+            "name": "Mateo",
+            "gender": "Masculino",
+            "accent": "Uruguay",
+            "category": "Uruguay (Edge Neural)",
+            "recommended": False,
+            "description": "Locución ríoplatense sobria y precisa.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-UY-ValentinaNeural",
+            "name": "Valentina",
+            "gender": "Femenino",
+            "accent": "Uruguay",
+            "category": "Uruguay (Edge Neural)",
+            "recommended": False,
+            "description": "Tono ameno, claro y reflexivo.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-CR-JuanNeural",
+            "name": "Juan",
+            "gender": "Masculino",
+            "accent": "Costa Rica",
+            "category": "Centroamérica y Caribe",
+            "recommended": False,
+            "description": "Acento centroamericano neutro y pausado.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-CR-MariaNeural",
+            "name": "María",
+            "gender": "Femenino",
+            "accent": "Costa Rica",
+            "category": "Centroamérica y Caribe",
+            "recommended": False,
+            "description": "Tono dulce, claro y didáctico.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-PR-VictorNeural",
+            "name": "Víctor",
+            "gender": "Masculino",
+            "accent": "Puerto Rico",
+            "category": "Centroamérica y Caribe",
+            "recommended": False,
+            "description": "Locución dinámica y articulada.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-PR-KarinaNeural",
+            "name": "Karina",
+            "gender": "Femenino",
+            "accent": "Puerto Rico",
+            "category": "Centroamérica y Caribe",
+            "recommended": False,
+            "description": "Voz alegre, profesional y expresiva.",
             "engine": "edge-tts"
         },
         {
@@ -105,7 +298,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Alonso",
             "gender": "Masculino",
             "accent": "Latino Neutro (EE.UU.)",
-            "category": "Latinoamérica",
+            "category": "Latino Neutro (EE.UU.)",
             "recommended": False,
             "description": "Locución dinámica y articulada para presentaciones corporativas.",
             "engine": "edge-tts"
@@ -115,7 +308,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Paloma",
             "gender": "Femenino",
             "accent": "Latino Neutro (EE.UU.)",
-            "category": "Latinoamérica",
+            "category": "Latino Neutro (EE.UU.)",
             "recommended": False,
             "description": "Tono joven, fresco y claro.",
             "engine": "edge-tts"
@@ -138,6 +331,16 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "category": "Castellano (España)",
             "recommended": False,
             "description": "Acento castellano clásico y sereno.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-ES-XimenaNeural",
+            "name": "Ximena",
+            "gender": "Femenino",
+            "accent": "España",
+            "category": "Castellano (España)",
+            "recommended": False,
+            "description": "Voz castellana juvenil y expresiva.",
             "engine": "edge-tts"
         },
     ],
@@ -461,7 +664,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
 }
 
 # Kokoro voice IDs quick lookup set
-KOKORO_VOICES = {v["id"] for v in VOICES_CATALOG["en"]}
+KOKORO_VOICES = {v["id"] for v_list in VOICES_CATALOG.values() for v in v_list if v.get("engine") == "kokoro"}
 
 # =========================================================================
 #  Motor 1: Microsoft Edge Neural TTS (Español)
@@ -499,7 +702,7 @@ async def generate_edge_tts_audio(text: str, voice_name: str, speed: float = 0.9
     return wav_io.getvalue()
 
 # =========================================================================
-#  Motor 2: Kokoro-82M TTS con GPU (Inglés)
+#  Motor 2: Kokoro-82M TTS con GPU (Inglés y Español)
 # =========================================================================
 
 _kokoro_pipelines: Dict[str, Any] = {}
@@ -520,7 +723,7 @@ def get_kokoro_pipeline(lang_code: str = 'a'):
 def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
     """
     Genera audio con Kokoro-82M a 24000 Hz. Exporta en MP3 (192kbps) o WAV 16-bit.
-    Soporta voces individuales y mezclas separadas por comas (ej. 'af_bella,af_sarah').
+    Soporta voces individuales y mezclas separadas por comas (ej. 'af_bella,af_sarah' o 'ef_dora,af_sarah').
     """
     import torch
     import soundfile as sf
@@ -533,8 +736,14 @@ def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_form
     cleaned_voices = ",".join(v.strip() for v in voice.split(",") if v.strip())
     first_voice = cleaned_voices.split(",")[0] if cleaned_voices else "af_heart"
 
-    # Detectar si la voz es británica ('b') o americana ('a')
-    lang_code = 'b' if first_voice.startswith('b') else 'a'
+    # Detectar si la voz es en español ('e'), británica ('b') o americana ('a')
+    if first_voice.startswith(('ef_', 'em_')) or any(v.strip().startswith(('ef_', 'em_')) for v in cleaned_voices.split(',')):
+        lang_code = 'e'
+    elif first_voice.startswith('b'):
+        lang_code = 'b'
+    else:
+        lang_code = 'a'
+
     pipeline = get_kokoro_pipeline(lang_code)
 
     generator = pipeline(clean_text, voice=cleaned_voices, speed=speed, split_pattern=r'\n+')
@@ -652,16 +861,16 @@ async def tts_generate(req: TTSRequest):
 
     media_type = "audio/mpeg" if audio_format == "mp3" else "audio/wav"
 
-    # 1. Caso Kokoro (Inglés y Mezclas de Voces)
+    # 1. Caso Kokoro (Inglés, Español con Kokoro y Mezclas de Voces)
     is_kokoro = (
         voice_id in KOKORO_VOICES
         or lang == "en"
-        or voice_id.startswith(("af_", "am_", "bf_", "bm_"))
-        or ("," in voice_id and any(v.strip().startswith(("af_", "am_", "bf_", "bm_")) for v in voice_id.split(",")))
+        or voice_id.startswith(("af_", "am_", "bf_", "bm_", "ef_", "em_"))
+        or ("," in voice_id and any(v.strip().startswith(("af_", "am_", "bf_", "bm_", "ef_", "em_")) for v in voice_id.split(",")))
     )
     if is_kokoro:
         try:
-            print(f"[TTS] Sintetizando en inglés con Kokoro-82M (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
+            print(f"[TTS] Sintetizando con Kokoro-82M (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
             async with _kokoro_lock:
                 audio_bytes = await asyncio.to_thread(generate_kokoro_audio, req.text, voice_id, speed, audio_format)
             safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', voice_id)

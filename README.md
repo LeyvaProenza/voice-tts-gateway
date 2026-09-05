@@ -95,12 +95,13 @@ python -m uvicorn app:app --port 8000 --host 127.0.0.1
 
 | Idioma | ID de Voz | Género | Acento | Perfil de Locución |
 | :--- | :--- | :--- | :--- | :--- |
-| **Español** | `es-MX-JorgeNeural` | Masculino | México | ⭐ **Recomendado Docente**. Tono sereno, confiable y explicativo. |
-| **Español** | `es-MX-DaliaNeural` | Femenino | México | ⭐ **Recomendada Docente**. Dicción limpia y cercana para lecciones. |
-| **Español** | `es-CO-GonzaloNeural` | Masculino | Colombia | Formal y neutro, ideal para lecturas científicas. |
-| **Inglés** | `af_bella,af_sarah` | Femenino | American Blend | ⭐ **Mezcla Educativa Insignia**. Articulación nítida de Bella + cadencia de Sarah. |
-| **Inglés** | `af_heart` | Femenino | American | ⭐ **Recomendada Individual**. Voz cálida, empática y de máxima fidelidad humana. |
-| **Inglés** | `am_adam` | Masculino | American | ⭐ **Recomendado Docente**. Narrador estilo documental y conferencias. |
+| **Español** | `ef_dora,af_sarah` | Femenino | Hispano Blend | ⭐ **Mezcla Educativa Kokoro (GPU)**. Dora en español + cadencia pedagógica de Sarah. |
+| **Español** | `es-MX-JorgeNeural` | Masculino | México | ⭐ **Recomendado Docente (Edge)**. Tono sereno, confiable y explicativo. |
+| **Español** | `es-MX-DaliaNeural` | Femenino | México | ⭐ **Recomendada Docente (Edge)**. Dicción limpia y cercana para lecciones. |
+| **Español** | `es-PE-AlexNeural` / `es-CO-GonzaloNeural` | Masculino | Perú / Colombia | Formal y neutro andino, ideal para lecturas científicas. |
+| **Inglés** | `af_bella,af_sarah` | Femenino | American Blend | ⭐ **Mezcla Educativa Insignia (GPU)**. Articulación de Bella + cadencia de Sarah. |
+| **Inglés** | `af_heart` | Femenino | American | ⭐ **Recomendada Individual (GPU)**. Voz cálida, empática y de máxima fidelidad humana. |
+| **Inglés** | `am_adam` | Masculino | American | ⭐ **Recomendado Docente (GPU)**. Narrador estilo documental y conferencias. |
 | **Inglés** | `bf_emma` | Femenino | British | Acento británico académico y elegante. |
 
 ---
