@@ -125,6 +125,15 @@
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
                             <span>Generar Narración</span>
                         </button>
+
+                        <div class="format-selector">
+                            <span class="format-label">Formato:</span>
+                            <div class="format-pills">
+                                <button type="button" class="btn-format active" data-format="mp3">MP3 (Ligero)</button>
+                                <button type="button" class="btn-format" data-format="wav">WAV (PCM)</button>
+                            </div>
+                        </div>
+
                         <div id="generation-status" class="generation-status"></div>
                     </div>
 
@@ -135,11 +144,11 @@
                                 <i class="fa-solid fa-circle-check audio-success-icon"></i>
                                 <div>
                                     <h4 id="audio-title">Narración Generada</h4>
-                                    <span id="audio-meta" class="audio-meta">WAV PCM 16-bit</span>
+                                    <span id="audio-meta" class="audio-meta">MP3 192kbps</span>
                                 </div>
                             </div>
-                            <a id="btn-download-audio" class="btn btn-download" download="narracion_educativa.wav">
-                                <i class="fa-solid fa-download"></i> Descargar WAV
+                            <a id="btn-download-audio" class="btn btn-download" download="narracion_educativa.mp3">
+                                <i class="fa-solid fa-download"></i> Descargar <span id="download-ext">MP3</span>
                             </a>
                         </div>
                         <div class="audio-player-wrapper">

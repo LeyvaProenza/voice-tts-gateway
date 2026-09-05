@@ -241,9 +241,10 @@ KOKORO_VOICES = {v["id"] for v in VOICES_CATALOG["en"]}
 #  Motor 1: Microsoft Edge Neural TTS (Español)
 # =========================================================================
 
-async def generate_edge_tts_audio(text: str, voice_name: str, speed: float = 0.95) -> bytes:
+async def generate_edge_tts_audio(text: str, voice_name: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
     """
     Genera audio con Edge-TTS y ajusta la tasa de habla para cadencia educativa.
+    Retorna MP3 directamente (sin transcodificación) o WAV según se solicite.
     """
     # Pre-procesar etiquetas de pausa educativa [pausa] o [silencio]
     clean_text = re.sub(r'\[(?:pausa|silencio)\]', '... ', text, flags=re.IGNORECASE)
@@ -261,7 +262,11 @@ async def generate_edge_tts_audio(text: str, voice_name: str, speed: float = 0.9
     if not mp3_data:
         raise ValueError("Edge-TTS no devolvió datos de audio.")
 
-    # Convertir MP3 bytes a WAV en memoria
+    # Si se solicita MP3, devolver directamente el flujo de Edge-TTS (más rápido y ligero)
+    if audio_format.lower() == "mp3":
+        return mp3_data
+
+    # Si se solicita WAV, convertir MP3 a WAV en memoria
     audio = AudioSegment.from_file(io.BytesIO(mp3_data), format="mp3")
     wav_io = io.BytesIO()
     audio.export(wav_io, format="wav")
@@ -286,12 +291,13 @@ def get_kokoro_pipeline(lang_code: str = 'a'):
     return _kokoro_pipelines[lang_code]
 
 
-def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95) -> bytes:
+def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
     """
-    Genera audio con Kokoro-82M a 24000 Hz en formato WAV de 16-bit.
+    Genera audio con Kokoro-82M a 24000 Hz. Exporta en MP3 (192kbps) o WAV 16-bit.
     """
     import torch
     import soundfile as sf
+    import numpy as np
 
     # Pre-procesar pausas para guiones
     clean_text = re.sub(r'\[(?:pausa|pause|silence)\]', '... ', text, flags=re.IGNORECASE)
@@ -314,6 +320,21 @@ def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95) -> bytes:
         dim=0
     ).numpy()
 
+    # Si se solicita MP3, convertir PCM a MP3 a 192 kbps
+    if audio_format.lower() == "mp3":
+        # Escalar de float [-1.0, 1.0] a int16
+        audio_int16 = (np.clip(full_audio, -1.0, 1.0) * 32767).astype(np.int16)
+        audio_seg = AudioSegment(
+            audio_int16.tobytes(),
+            frame_rate=24000,
+            sample_width=2,
+            channels=1
+        )
+        mp3_io = io.BytesIO()
+        audio_seg.export(mp3_io, format="mp3", bitrate="192k")
+        return mp3_io.getvalue()
+
+    # Si se solicita WAV
     wav_io = io.BytesIO()
     sf.write(wav_io, full_audio, 24000, format='WAV', subtype='PCM_16')
     return wav_io.getvalue()
@@ -343,6 +364,8 @@ def get_status():
         "status": "connected",
         "gpu_available": cuda_ok,
         "device": device_name,
+        "default_format": "mp3",
+        "supported_formats": ["mp3", "wav"],
         "engines": {
             "spanish": "Microsoft Edge Neural (Alta velocidad, 0 VRAM)",
             "english": "Kokoro-82M (Acelerado por GPU CUDA)"
@@ -356,6 +379,7 @@ class TTSRequest(BaseModel):
     speaker_wav: Optional[str] = None    # Compatibilidad previa ("es-MX-JorgeNeural.wav")
     language: Optional[str] = None       # "es" o "en"
     speed: Optional[float] = 0.95        # 0.95x = Ritmo pedagógico recomendado
+    format: Optional[str] = "mp3"        # "mp3" (recomendado, ~10x más ligero) o "wav"
     # Compatibilidad previa para parámetros de XTTS (no requeridos pero tolerados)
     temperature: Optional[float] = None
     length_penalty: Optional[float] = None
@@ -371,7 +395,7 @@ async def tts_generate(req: TTSRequest):
     Endpoint unificado de síntesis de voz:
     - Si la voz es de Kokoro (o idioma 'en'): Procesa en GPU con Kokoro-82M.
     - Si la voz es de Edge-TTS (o idioma 'es'): Procesa con Microsoft Edge Neural.
-    Retorna el stream binario de audio en formato audio/wav.
+    Retorna el stream binario de audio en formato MP3 (por omisión) o WAV.
     """
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="El campo 'text' no puede estar vacío.")
@@ -390,16 +414,23 @@ async def tts_generate(req: TTSRequest):
     # Determinar velocidad pedagógica (por omisión 0.95x para lecciones claras)
     speed = req.speed if req.speed is not None else 0.95
 
+    # Determinar formato de salida (mp3 por omisión)
+    audio_format = (req.format or "mp3").lower().strip()
+    if audio_format not in ["mp3", "wav"]:
+        audio_format = "mp3"
+
+    media_type = "audio/mpeg" if audio_format == "mp3" else "audio/wav"
+
     # 1. Caso Kokoro (Inglés)
     if voice_id in KOKORO_VOICES or lang == "en" or voice_id.startswith(("af_", "am_", "bf_", "bm_")):
         try:
-            print(f"[TTS] Sintetizando en inglés con Kokoro-82M (Voz: {voice_id}, Speed: {speed})...")
+            print(f"[TTS] Sintetizando en inglés con Kokoro-82M (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
             async with _kokoro_lock:
-                wav_bytes = await asyncio.to_thread(generate_kokoro_audio, req.text, voice_id, speed)
+                audio_bytes = await asyncio.to_thread(generate_kokoro_audio, req.text, voice_id, speed, audio_format)
             return Response(
-                content=wav_bytes,
-                media_type="audio/wav",
-                headers={"Content-Disposition": f"attachment; filename={voice_id}_output.wav"},
+                content=audio_bytes,
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename={voice_id}_output.{audio_format}"},
             )
         except Exception as e:
             print(f"[TTS Error Kokoro]: {e}")
@@ -407,12 +438,12 @@ async def tts_generate(req: TTSRequest):
 
     # 2. Caso Edge Neural (Español u otras voces Microsoft)
     try:
-        print(f"[TTS] Sintetizando con Edge Neural (Voz: {voice_id}, Speed: {speed})...")
-        wav_bytes = await generate_edge_tts_audio(req.text, voice_id, speed)
+        print(f"[TTS] Sintetizando con Edge Neural (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
+        audio_bytes = await generate_edge_tts_audio(req.text, voice_id, speed, audio_format)
         return Response(
-            content=wav_bytes,
-            media_type="audio/wav",
-            headers={"Content-Disposition": f"attachment; filename={voice_id}_output.wav"},
+            content=audio_bytes,
+            media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename={voice_id}_output.{audio_format}"},
         )
     except Exception as e:
         print(f"[TTS Error Edge]: {e}")

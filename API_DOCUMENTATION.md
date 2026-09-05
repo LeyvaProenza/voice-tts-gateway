@@ -9,7 +9,7 @@ Esta guía está diseñada para que cualquier otro proyecto (scripts de automati
 * **URL Base Local**: `http://localhost:8000`
 * **Protocolo**: HTTP / REST (OpenAPI)
 * **Formato de Solicitud**: JSON (`Content-Type: application/json`)
-* **Formato de Respuesta de Audio**: `audio/wav` (Binario WAV PCM 16-bit, 24000 Hz, Mono)
+* **Formato de Audio por Omisión**: `audio/mpeg` (MP3 192 kbps, ~8-10x más ligero) o `audio/wav` (WAV PCM 16-bit)
 
 ---
 
@@ -35,6 +35,7 @@ El servidor cuenta con enrutamiento inteligente automático:
 | **`text`** | string | **Sí** | - | Texto a narrar. Admite etiquetas `[pausa]` para insertar respiros naturales. |
 | **`voice`** | string | No | `"es-MX-JorgeNeural"` | ID de la voz a utilizar (ej. `es-MX-JorgeNeural`, `af_heart`, `am_adam`). |
 | **`speed`** | float | No | `0.95` | Velocidad de habla. `0.95` es el ritmo pedagógico recomendado (`0.75` a `1.25`). |
+| **`format`** | string | No | `"mp3"` | Formato de salida: `"mp3"` (recomendado, ultra ligero) o `"wav"`. |
 | **`language`** | string | No | Auto | `"es"` o `"en"` (se autodetecta según la voz si se omite). |
 
 ---
@@ -60,12 +61,13 @@ Devuelve el estado de conexión y si la GPU (RTX 3050 con CUDA) está activa par
 ```python
 import requests
 
-def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, archivo_salida="leccion.wav"):
+def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, formato="mp3", archivo_salida="leccion.mp3"):
     url = "http://localhost:8000/api/tts"
     payload = {
         "text": texto,
         "voice": voz,
-        "speed": velocidad
+        "speed": velocidad,
+        "format": formato
     }
     
     response = requests.post(url, json=payload, timeout=60)
@@ -73,7 +75,7 @@ def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, arch
     if response.status_code == 200:
         with open(archivo_salida, "wb") as f:
             f.write(response.content)
-        print(f"✅ Audio guardado exitosamente en: {archivo_salida}")
+        print(f"✅ Audio {formato.upper()} guardado exitosamente en: {archivo_salida}")
         return True
     else:
         print(f"❌ Error ({response.status_code}): {response.text}")
@@ -81,20 +83,22 @@ def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, arch
 
 # --- Ejemplos de Uso ---
 
-# 1. Narración en Español (Edge-TTS)
+# 1. Narración en Español en MP3 (Edge-TTS)
 generar_audio_educativo(
     texto="Bienvenidos al módulo clínico. [pausa] Hoy revisaremos el consentimiento informado.",
     voz="es-MX-JorgeNeural",
     velocidad=0.95,
-    archivo_salida="leccion_espanol.wav"
+    formato="mp3",
+    archivo_salida="leccion_espanol.mp3"
 )
 
-# 2. Narración en Inglés (Kokoro AI con GPU)
+# 2. Narración en Inglés en MP3 (Kokoro AI con GPU)
 generar_audio_educativo(
     texto="Welcome to this artificial intelligence tutorial. [pausa] Follow the instructions on screen.",
     voz="af_heart",
     velocidad=0.95,
-    archivo_salida="lesson_english.wav"
+    formato="mp3",
+    archivo_salida="lesson_english.mp3"
 )
 ```
 
@@ -108,17 +112,19 @@ function Invoke-VoiceTTS {
         [Parameter(Mandatory=$true)][string]$Text,
         [string]$Voice = "es-MX-JorgeNeural",
         [double]$Speed = 0.95,
-        [string]$OutputFile = "narracion.wav"
+        [string]$Format = "mp3",
+        [string]$OutputFile = "narracion.mp3"
     )
 
     $url = "http://localhost:8000/api/tts"
     $body = @{
-        text  = $Text
-        voice = $Voice
-        speed = $Speed
+        text   = $Text
+        voice  = $Voice
+        speed  = $Speed
+        format = $Format
     } | ConvertTo-Json -Compress
 
-    Write-Host "Generando narración con voz: $Voice..."
+    Write-Host "Generando narración con voz: $Voice (Formato: $Format)..."
     
     Invoke-RestMethod -Uri $url -Method Post -ContentType "application/json" -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -OutFile $OutputFile
     
@@ -126,8 +132,8 @@ function Invoke-VoiceTTS {
 }
 
 # Ejemplo de llamada:
-Invoke-VoiceTTS -Text "Hola a todos. [pausa] Esta es una diapositiva automatizada." -Voice "es-MX-JorgeNeural" -OutputFile "slide_1.wav"
-Invoke-VoiceTTS -Text "Hello, this slide was generated with Kokoro AI." -Voice "af_heart" -OutputFile "slide_en.wav"
+Invoke-VoiceTTS -Text "Hola a todos. [pausa] Esta es una diapositiva automatizada." -Voice "es-MX-JorgeNeural" -OutputFile "slide_1.mp3"
+Invoke-VoiceTTS -Text "Hello, this slide was generated with Kokoro AI." -Voice "af_heart" -OutputFile "slide_en.mp3"
 ```
 
 ---

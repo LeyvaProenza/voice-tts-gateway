@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let catalog = { es: [], en: [] };
     let currentLang = 'es';
     let currentSpeed = 0.95;
+    let currentFormat = 'mp3';
     let currentAudioUrl = null;
 
     // DOM Elements
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const speedRange = document.getElementById('speed-range');
     const speedDisplay = document.getElementById('speed-display');
     const speedPresets = document.querySelectorAll('.btn-preset');
+    const formatButtons = document.querySelectorAll('.btn-format');
     const scriptText = document.getElementById('script-text');
     const charCounter = document.getElementById('char-counter');
     const btnInsertPause = document.getElementById('btn-insert-pause');
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioCard = document.getElementById('audio-output-card');
     const audioPlayer = document.getElementById('audio-player');
     const btnDownloadAudio = document.getElementById('btn-download-audio');
+    const downloadExt = document.getElementById('download-ext');
     const audioTitle = document.getElementById('audio-title');
     const audioMeta = document.getElementById('audio-meta');
     const gpuBadge = document.getElementById('gpu-badge');
@@ -172,7 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: text,
                 voice: voiceId,
                 language: currentLang,
-                speed: currentSpeed
+                speed: currentSpeed,
+                format: currentFormat
             };
 
             const response = await fetch('/api/tts', {
@@ -211,17 +215,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             audioTitle.textContent = `Narración: ${voiceName}`;
             const sizeKb = (audioBlob.size / 1024).toFixed(0);
-            audioMeta.textContent = `WAV PCM • ${sizeKb} KB • Generado en ${elapsed}s (${currentSpeed}x)`;
+            const fmtUpper = currentFormat.toUpperCase();
+            audioMeta.textContent = `${fmtUpper} • ${sizeKb} KB • Generado en ${elapsed}s (${currentSpeed}x)`;
 
             // Configurar botón de descarga
             const dateStr = new Date().toISOString().slice(0, 10);
             btnDownloadAudio.href = currentAudioUrl;
-            btnDownloadAudio.download = `${voiceId}_${dateStr}.wav`;
+            btnDownloadAudio.download = `${voiceId}_${dateStr}.${currentFormat}`;
+            if (downloadExt) downloadExt.textContent = fmtUpper;
 
             audioCard.style.display = 'block';
             audioCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-            showStatus(`¡Audio generado con éxito en ${elapsed}s!`, 'success');
+            showStatus(`¡Audio ${fmtUpper} generado con éxito en ${elapsed}s!`, 'success');
 
         } catch (error) {
             console.error(error);
@@ -269,6 +275,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     speedPresets.forEach(btn => {
         btn.addEventListener('click', () => setSpeed(btn.dataset.speed));
+    });
+
+    formatButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            formatButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFormat = btn.dataset.format;
+            if (downloadExt) downloadExt.textContent = currentFormat.toUpperCase();
+        });
     });
 
     scriptText.addEventListener('input', updateTextStats);
