@@ -22,8 +22,8 @@ echo.
 :: Automatically open browser after 2 seconds (when the server is up)
 start /min cmd /c "timeout /t 2 > nul && start http://127.0.0.1:8000"
 
-:: Run FastAPI control panel via uvicorn
-.venv\Scripts\python.exe -m uvicorn app:app --port 8000 --host 127.0.0.1
+:: Run FastAPI control panel via uvicorn with auto-reload
+.venv\Scripts\python.exe -m uvicorn app:app --port 8000 --host 127.0.0.1 --reload
 
 echo.
 echo Servidor cerrado.
