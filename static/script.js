@@ -89,12 +89,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Agrupar por categoría
+        const categories = {};
         voices.forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v.id;
-            const star = v.recommended ? ' ⭐' : '';
-            opt.textContent = `${v.name} (${v.gender} • ${v.accent})${star}`;
-            voiceSelect.appendChild(opt);
+            const cat = v.category || (v.engine === 'kokoro' ? 'Kokoro AI (Inglés)' : 'Microsoft Edge (Español)');
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push(v);
+        });
+
+        Object.keys(categories).forEach(cat => {
+            const group = document.createElement('optgroup');
+            group.label = cat;
+            categories[cat].forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                const star = v.recommended ? ' ⭐' : '';
+                opt.textContent = `${v.name} (${v.gender} • ${v.accent})${star}`;
+                group.appendChild(opt);
+            });
+            voiceSelect.appendChild(group);
         });
 
         // Seleccionar la primera recomendada

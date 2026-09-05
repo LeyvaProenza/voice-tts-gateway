@@ -45,6 +45,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Jorge (Recomendado)",
             "gender": "Masculino",
             "accent": "México",
+            "category": "Latinoamérica",
             "recommended": True,
             "description": "Tono sereno, cálido y explicativo. Dicción impecable para docencia y tutoriales.",
             "engine": "edge-tts"
@@ -54,6 +55,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Dalia (Recomendada)",
             "gender": "Femenino",
             "accent": "México",
+            "category": "Latinoamérica",
             "recommended": True,
             "description": "Voz clara, empática y natural, excelente para exposiciones y material formativo.",
             "engine": "edge-tts"
@@ -63,6 +65,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Gonzalo",
             "gender": "Masculino",
             "accent": "Colombia",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Acento neutro y formal, ideal para lecturas académicas o científicas.",
             "engine": "edge-tts"
@@ -72,6 +75,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Salomé",
             "gender": "Femenino",
             "accent": "Colombia",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Tono pausado y suave, muy adecuado para audiolibros educativos.",
             "engine": "edge-tts"
@@ -81,6 +85,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Tomás",
             "gender": "Masculino",
             "accent": "Argentina",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Locución segura y profesional.",
             "engine": "edge-tts"
@@ -90,6 +95,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Catalina",
             "gender": "Femenino",
             "accent": "Chile",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Voz limpia, expresiva y didáctica.",
             "engine": "edge-tts"
@@ -99,6 +105,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Alonso",
             "gender": "Masculino",
             "accent": "Latino Neutro (EE.UU.)",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Locución dinámica y articulada para presentaciones corporativas.",
             "engine": "edge-tts"
@@ -108,6 +115,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Paloma",
             "gender": "Femenino",
             "accent": "Latino Neutro (EE.UU.)",
+            "category": "Latinoamérica",
             "recommended": False,
             "description": "Tono joven, fresco y claro.",
             "engine": "edge-tts"
@@ -117,6 +125,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Álvaro",
             "gender": "Masculino",
             "accent": "España",
+            "category": "Castellano (España)",
             "recommended": False,
             "description": "Acento castellano formal y bien articulado.",
             "engine": "edge-tts"
@@ -126,28 +135,53 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Elvira",
             "gender": "Femenino",
             "accent": "España",
+            "category": "Castellano (España)",
             "recommended": False,
             "description": "Acento castellano clásico y sereno.",
             "engine": "edge-tts"
         },
     ],
     "en": [
+        # --- MEZCLAS EDUCATIVAS (VOICE BLENDING) ---
         {
-            "id": "af_heart",
-            "name": "Heart (Recomendada)",
+            "id": "af_bella,af_sarah",
+            "name": "Bella & Sarah (Mezcla Educativa)",
             "gender": "Femenino",
-            "accent": "American",
+            "accent": "American Blend",
+            "category": "⭐ Mezclas Educativas (Blends)",
             "recommended": True,
-            "description": "Voz insignia de Kokoro. Calidez humana insuperable para e-learning.",
+            "description": "Mezcla estelar recomendada para e-learning: combina la claridad nítida de Bella con el ritmo cálido y pausado de Sarah.",
             "engine": "kokoro"
         },
         {
-            "id": "am_adam",
-            "name": "Adam (Recomendado)",
+            "id": "af_heart,af_nicole",
+            "name": "Heart & Nicole (Mezcla Didáctica)",
+            "gender": "Femenino",
+            "accent": "American Blend",
+            "category": "⭐ Mezclas Educativas (Blends)",
+            "recommended": False,
+            "description": "Fusión de calidez empática y articulación metódica para tutoriales paso a paso.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_adam,am_michael",
+            "name": "Adam & Michael (Mezcla Académica)",
             "gender": "Masculino",
+            "accent": "American Blend",
+            "category": "⭐ Mezclas Educativas (Blends)",
+            "recommended": False,
+            "description": "Tono documental formal y robusto para conferencias o lecciones científicas.",
+            "engine": "kokoro"
+        },
+        # --- AMERICAN FEMALE (11 VOCES) ---
+        {
+            "id": "af_heart",
+            "name": "Heart (Insignia Kokoro)",
+            "gender": "Femenino",
             "accent": "American",
+            "category": "American Female (US)",
             "recommended": True,
-            "description": "Narrador clásico estilo documental y conferencias académicas.",
+            "description": "Voz insignia de Kokoro. Calidez humana insuperable y máxima naturalidad para e-learning.",
             "engine": "kokoro"
         },
         {
@@ -155,17 +189,9 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Bella",
             "gender": "Femenino",
             "accent": "American",
+            "category": "American Female (US)",
             "recommended": False,
             "description": "Articulada, expresiva y didáctica.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_nicole",
-            "name": "Nicole",
-            "gender": "Femenino",
-            "accent": "American",
-            "recommended": False,
-            "description": "Tono paciente y profesional, perfecto para guías paso a paso.",
             "engine": "kokoro"
         },
         {
@@ -173,8 +199,100 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Sarah",
             "gender": "Femenino",
             "accent": "American",
+            "category": "American Female (US)",
             "recommended": False,
-            "description": "Voz juvenil, amigable y entusiasta.",
+            "description": "Voz juvenil, amigable y entusiasta con ritmo cadencioso.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_nicole",
+            "name": "Nicole",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Tono paciente y profesional, perfecto para guías instructivas.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_alloy",
+            "name": "Alloy",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Tono versátil y directo, similar a asistentes modernos.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_aoede",
+            "name": "Aoede",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Tono suave, fluido y envolvente.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_jessica",
+            "name": "Jessica",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Locución clara y formal para presentaciones de negocios.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_kore",
+            "name": "Kore",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Tono calmo y seguro para lecturas reflexivas.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_nova",
+            "name": "Nova",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Energética, dinámica y motivacional.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_river",
+            "name": "River",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Tono moderno con textura acústica natural.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "af_sky",
+            "name": "Sky",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "American Female (US)",
+            "recommended": False,
+            "description": "Voz luminosa y positiva para módulos de bienvenida o síntesis.",
+            "engine": "kokoro"
+        },
+        # --- AMERICAN MALE (9 VOCES) ---
+        {
+            "id": "am_adam",
+            "name": "Adam (Recomendado)",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": True,
+            "description": "Narrador clásico estilo documental y conferencias académicas.",
             "engine": "kokoro"
         },
         {
@@ -182,6 +300,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Michael",
             "gender": "Masculino",
             "accent": "American",
+            "category": "American Male (US)",
             "recommended": False,
             "description": "Voz madura y técnica para temas científicos.",
             "engine": "kokoro"
@@ -191,17 +310,90 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Echo",
             "gender": "Masculino",
             "accent": "American",
+            "category": "American Male (US)",
             "recommended": False,
             "description": "Tono pausado, ideal para meditaciones o lecturas reflexivas.",
             "engine": "kokoro"
         },
         {
+            "id": "am_eric",
+            "name": "Eric",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Locución amena y conversacional para talleres prácticos.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_fenrir",
+            "name": "Fenrir",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Voz profunda y resonante para narraciones dramáticas.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_liam",
+            "name": "Liam",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Tono joven y dinámico para audiencias jóvenes o universitarias.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_onyx",
+            "name": "Onyx",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Voz grave y autorizada para síntesis conceptuales.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_puck",
+            "name": "Puck",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Voz ágil y espontánea.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "am_santa",
+            "name": "Santa",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "American Male (US)",
+            "recommended": False,
+            "description": "Tono cálido, festivo y característico.",
+            "engine": "kokoro"
+        },
+        # --- BRITISH FEMALE (4 VOCES) ---
+        {
             "id": "bf_emma",
             "name": "Emma (Académica UK)",
             "gender": "Femenino",
             "accent": "British",
+            "category": "British Female (UK)",
             "recommended": False,
             "description": "Acento británico elegante y pedagógico.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "bf_alice",
+            "name": "Alice",
+            "gender": "Femenino",
+            "accent": "British",
+            "category": "British Female (UK)",
+            "recommended": False,
+            "description": "Voz británica articulada y refinada.",
             "engine": "kokoro"
         },
         {
@@ -209,17 +401,50 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Isabella",
             "gender": "Femenino",
             "accent": "British",
+            "category": "British Female (UK)",
             "recommended": False,
             "description": "Voz británica formal y suave.",
             "engine": "kokoro"
         },
         {
+            "id": "bf_lily",
+            "name": "Lily",
+            "gender": "Femenino",
+            "accent": "British",
+            "category": "British Female (UK)",
+            "recommended": False,
+            "description": "Tono joven británico, claro y melodioso.",
+            "engine": "kokoro"
+        },
+        # --- BRITISH MALE (4 VOCES) ---
+        {
             "id": "bm_george",
-            "name": "George",
+            "name": "George (Académico UK)",
             "gender": "Masculino",
             "accent": "British",
+            "category": "British Male (UK)",
             "recommended": False,
             "description": "Narrador clásico británico con presencia autorizada.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "bm_daniel",
+            "name": "Daniel",
+            "gender": "Masculino",
+            "accent": "British",
+            "category": "British Male (UK)",
+            "recommended": False,
+            "description": "Voz británica sobria y catedrática.",
+            "engine": "kokoro"
+        },
+        {
+            "id": "bm_fable",
+            "name": "Fable",
+            "gender": "Masculino",
+            "accent": "British",
+            "category": "British Male (UK)",
+            "recommended": False,
+            "description": "Estilo cuenta-cuentos o narrador literario británico.",
             "engine": "kokoro"
         },
         {
@@ -227,6 +452,7 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Lewis",
             "gender": "Masculino",
             "accent": "British",
+            "category": "British Male (UK)",
             "recommended": False,
             "description": "Voz británica precisa y clara.",
             "engine": "kokoro"
@@ -294,6 +520,7 @@ def get_kokoro_pipeline(lang_code: str = 'a'):
 def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
     """
     Genera audio con Kokoro-82M a 24000 Hz. Exporta en MP3 (192kbps) o WAV 16-bit.
+    Soporta voces individuales y mezclas separadas por comas (ej. 'af_bella,af_sarah').
     """
     import torch
     import soundfile as sf
@@ -302,11 +529,15 @@ def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_form
     # Pre-procesar pausas para guiones
     clean_text = re.sub(r'\[(?:pausa|pause|silence)\]', '... ', text, flags=re.IGNORECASE)
 
+    # Limpiar y normalizar lista de voces para soportar mezclas arbitrarias con o sin espacios
+    cleaned_voices = ",".join(v.strip() for v in voice.split(",") if v.strip())
+    first_voice = cleaned_voices.split(",")[0] if cleaned_voices else "af_heart"
+
     # Detectar si la voz es británica ('b') o americana ('a')
-    lang_code = 'b' if voice.startswith('b') else 'a'
+    lang_code = 'b' if first_voice.startswith('b') else 'a'
     pipeline = get_kokoro_pipeline(lang_code)
 
-    generator = pipeline(clean_text, voice=voice, speed=speed, split_pattern=r'\n+')
+    generator = pipeline(clean_text, voice=cleaned_voices, speed=speed, split_pattern=r'\n+')
     audio_chunks = []
     for _, _, audio in generator:
         if audio is not None:
@@ -421,16 +652,23 @@ async def tts_generate(req: TTSRequest):
 
     media_type = "audio/mpeg" if audio_format == "mp3" else "audio/wav"
 
-    # 1. Caso Kokoro (Inglés)
-    if voice_id in KOKORO_VOICES or lang == "en" or voice_id.startswith(("af_", "am_", "bf_", "bm_")):
+    # 1. Caso Kokoro (Inglés y Mezclas de Voces)
+    is_kokoro = (
+        voice_id in KOKORO_VOICES
+        or lang == "en"
+        or voice_id.startswith(("af_", "am_", "bf_", "bm_"))
+        or ("," in voice_id and any(v.strip().startswith(("af_", "am_", "bf_", "bm_")) for v in voice_id.split(",")))
+    )
+    if is_kokoro:
         try:
             print(f"[TTS] Sintetizando en inglés con Kokoro-82M (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
             async with _kokoro_lock:
                 audio_bytes = await asyncio.to_thread(generate_kokoro_audio, req.text, voice_id, speed, audio_format)
+            safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', voice_id)
             return Response(
                 content=audio_bytes,
                 media_type=media_type,
-                headers={"Content-Disposition": f"attachment; filename={voice_id}_output.{audio_format}"},
+                headers={"Content-Disposition": f"attachment; filename={safe_filename}_output.{audio_format}"},
             )
         except Exception as e:
             print(f"[TTS Error Kokoro]: {e}")

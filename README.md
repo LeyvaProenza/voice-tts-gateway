@@ -11,15 +11,17 @@ Combina **Microsoft Edge Neural TTS** para español con calidad de estudio y **K
 - 🇲🇽 **Español Docente (Microsoft Edge Neural)**:
   - Voces recomendadas: `es-MX-JorgeNeural` (Masculino, sereno y explicativo) y `es-MX-DaliaNeural` (Femenina, dicción cristalina).
   - Cero consumo de memoria VRAM (ultra-rápido y sin saturar tu tarjeta gráfica).
-- 🇺🇸 **Inglés Educativo (Kokoro-82M en GPU)**:
-  - Voces recomendadas: `af_heart` (la voz insignia de Kokoro, cálida y empática para e-learning) y `am_adam` (narrador documental académico).
+- 🇺🇸 **Inglés Educativo con Voice Blending (Kokoro-82M en GPU)**:
+  - Soporte para **mezcla nativa de voces**: `af_bella,af_sarah` (la combinación de referencia para docencia y tutoriales), `af_heart` (insignia de Kokoro) y `am_adam` (narrador académico).
   - Acelerado por hardware con **NVIDIA CUDA** (optimizado para GPUs RTX 3050 de 6 GB, consumiendo solo ~400 MB de VRAM).
+- 🎵 **Formato MP3 Ligero por Defecto**:
+  - Salida nativa en MP3 (192 kbps), reduciendo el peso en ~90% respecto a WAV sin perder fidelidad auditiva (con opción de salida WAV PCM).
 - ⏱️ **Control de Ritmo Pedagógico**:
   - Ajuste de velocidad predeterminado a **`0.95x`** (`-5%`), el tempo ideal para que los estudiantes asimilen conceptos complejos sin fatiga auditiva.
 - ⏸️ **Etiquetas de Pausa Natural**:
   - Soporte para etiquetas `[pausa]` en los guiones, generando silencios naturales entre diapositivas o ideas clave.
 - 🔌 **API REST Unificada para Antigravity**:
-  - Endpoint `POST /api/tts` que devuelve el stream del archivo `.wav` (PCM 16-bit) listo para reproducir o insertar directamente en diapositivas o videos.
+  - Endpoint `POST /api/tts` que devuelve el stream del archivo `.mp3` (o `.wav`) listo para reproducir o insertar directamente en diapositivas o videos.
 
 ---
 
@@ -72,31 +74,33 @@ python -m uvicorn app:app --port 8000 --host 127.0.0.1
 }
 ```
 
-#### Ejemplo en Inglés (Kokoro AI):
+#### Ejemplo en Inglés con Mezcla Educativa (Kokoro AI):
 ```json
 {
   "text": "Welcome to this educational session. [pausa] Please follow along with the interactive guide.",
-  "voice": "af_heart",
-  "speed": 0.95
+  "voice": "af_bella,af_sarah",
+  "speed": 0.95,
+  "format": "mp3"
 }
 ```
 
 #### Respuesta:
 - **HTTP Status**: `200 OK`
-- **Content-Type**: `audio/wav`
-- **Body**: Stream binario del archivo WAV (PCM 16-bit).
+- **Content-Type**: `audio/mpeg` (o `audio/wav` si se solicita)
+- **Body**: Stream binario del archivo MP3 (192 kbps) o WAV (PCM 16-bit).
 
 ---
 
-## 🎓 Voces Recomendadas para Software Educativo
+## 🎓 Voces y Mezclas Recomendadas para Software Educativo
 
 | Idioma | ID de Voz | Género | Acento | Perfil de Locución |
 | :--- | :--- | :--- | :--- | :--- |
-| **Español** | `es-MX-JorgeNeural` | Masculino | México | ⭐ **Recomendado**. Tono sereno, confiable y explicativo. |
-| **Español** | `es-MX-DaliaNeural` | Femenino | México | ⭐ **Recomendada**. Dicción limpia y cercana para lecciones. |
+| **Español** | `es-MX-JorgeNeural` | Masculino | México | ⭐ **Recomendado Docente**. Tono sereno, confiable y explicativo. |
+| **Español** | `es-MX-DaliaNeural` | Femenino | México | ⭐ **Recomendada Docente**. Dicción limpia y cercana para lecciones. |
 | **Español** | `es-CO-GonzaloNeural` | Masculino | Colombia | Formal y neutro, ideal para lecturas científicas. |
-| **Inglés** | `af_heart` | Femenino | American | ⭐ **Recomendada**. Voz cálida, empática y de máxima fidelidad. |
-| **Inglés** | `am_adam` | Masculino | American | ⭐ **Recomendado**. Narrador estilo documental y conferencias. |
+| **Inglés** | `af_bella,af_sarah` | Femenino | American Blend | ⭐ **Mezcla Educativa Insignia**. Articulación nítida de Bella + cadencia de Sarah. |
+| **Inglés** | `af_heart` | Femenino | American | ⭐ **Recomendada Individual**. Voz cálida, empática y de máxima fidelidad humana. |
+| **Inglés** | `am_adam` | Masculino | American | ⭐ **Recomendado Docente**. Narrador estilo documental y conferencias. |
 | **Inglés** | `bf_emma` | Femenino | British | Acento británico académico y elegante. |
 
 ---
