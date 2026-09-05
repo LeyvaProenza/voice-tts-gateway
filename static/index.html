@@ -182,20 +182,22 @@
                                 <pre class="code-block">{
   "text": "Bienvenidos a la unidad didáctica sobre metodología.",
   "voice": "es-MX-JorgeNeural",
-  "speed": 0.95
+  "speed": 0.95,
+  "format": "mp3"
 }</pre>
                             </div>
                             <div>
-                                <label class="code-label">Ejemplo en Inglés (Kokoro AI):</label>
+                                <label class="code-label">Ejemplo en Inglés con Mezcla (Kokoro AI):</label>
                                 <pre class="code-block">{
   "text": "Welcome to this introductory lesson on science.",
-  "voice": "af_heart",
-  "speed": 0.95
+  "voice": "af_bella,af_sarah",
+  "speed": 0.95,
+  "format": "mp3"
 }</pre>
                             </div>
                         </div>
                         <p class="api-note">
-                            <strong>Respuesta:</strong> El endpoint devuelve el archivo <code>audio/wav</code> binario directamente con código HTTP 200, listo para ser insertado en diapositivas o reproducido.
+                            <strong>Respuesta:</strong> El endpoint devuelve el archivo <code>audio/mpeg</code> (MP3 192 kbps por defecto) o <code>audio/wav</code> binario directamente con código HTTP 200. Admite cualquier mezcla de voces separadas por coma (ej. <code>af_bella,af_sarah</code>). Consulta <strong>API_DOCUMENTATION.md</strong> para ver ejemplos en Python, PowerShell, JavaScript y cURL.
                         </p>
                     </div>
                 </details>
