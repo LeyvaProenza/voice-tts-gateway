@@ -1,372 +1,310 @@
+// Voice-TTS Studio - Educational Narration Client
+
 document.addEventListener('DOMContentLoaded', () => {
-    const API = '';
+    // State
+    let catalog = { es: [], en: [] };
+    let currentLang = 'es';
+    let currentSpeed = 0.95;
+    let currentAudioUrl = null;
 
-    // --- DOM ---
-    const statusBadge   = document.getElementById('tts-status');
-    const btnStart      = document.getElementById('btn-start');
-    const btnStop       = document.getElementById('btn-stop');
-    const btnRefresh    = document.getElementById('btn-refresh');
-    const serverLog     = document.getElementById('server-log');
-    const btnRefreshLog = document.getElementById('btn-refresh-log');
+    // DOM Elements
+    const langTabs = document.querySelectorAll('.lang-tab');
+    const voiceSelect = document.getElementById('voice-select');
+    const voiceDesc = document.getElementById('voice-desc');
+    const speedRange = document.getElementById('speed-range');
+    const speedDisplay = document.getElementById('speed-display');
+    const speedPresets = document.querySelectorAll('.btn-preset');
+    const scriptText = document.getElementById('script-text');
+    const charCounter = document.getElementById('char-counter');
+    const btnInsertPause = document.getElementById('btn-insert-pause');
+    const btnSampleText = document.getElementById('btn-sample-text');
+    const btnClearText = document.getElementById('btn-clear-text');
+    const btnGenerate = document.getElementById('btn-generate');
+    const generationStatus = document.getElementById('generation-status');
+    const audioCard = document.getElementById('audio-output-card');
+    const audioPlayer = document.getElementById('audio-player');
+    const btnDownloadAudio = document.getElementById('btn-download-audio');
+    const audioTitle = document.getElementById('audio-title');
+    const audioMeta = document.getElementById('audio-meta');
+    const gpuBadge = document.getElementById('gpu-badge');
 
-    const dropzone        = document.getElementById('dropzone');
-    const fileInput       = document.getElementById('speaker-file-input');
-    const uploadStatus    = document.getElementById('upload-status');
-    const voiceList       = document.getElementById('voice-list');
+    const SAMPLES = {
+        es: "Buenos días a todos. En esta lección aprenderemos los conceptos fundamentales de la investigación científica. [pausa] Es indispensable estructurar una pregunta clara y valorar rigurosamente la evidencia metodológica.",
+        en: "Welcome to this educational session. Today, we will explore the fundamental principles of artificial intelligence and science. [pausa] Please follow each step carefully before starting the interactive exercises."
+    };
 
-    const testSpeaker  = document.getElementById('test-speaker');
-    const testLang     = document.getElementById('test-lang');
-    const testText     = document.getElementById('test-text');
-    const btnTest      = document.getElementById('btn-test');
-    const testStatus   = document.getElementById('test-status');
-    const testAudioCtn = document.getElementById('test-audio-container');
-    const testAudio    = document.getElementById('test-audio');
+    // 1. Inicialización
+    async function init() {
+        // Cargar estado y GPU
+        loadServerStatus();
 
-    const btnCopyUrl   = document.getElementById('btn-copy-url');
-    const apiSpeakerName = document.getElementById('api-speaker-name');
-
-    // Advanced Parameters DOM
-    const testTemp         = document.getElementById('test-temp');
-    const valTemp          = document.getElementById('val-temp');
-    const testLengthPenalty = document.getElementById('test-length-penalty');
-    const valLenPenalty    = document.getElementById('val-len-penalty');
-    const testRepPenalty   = document.getElementById('test-rep-penalty');
-    const valRepPenalty    = document.getElementById('val-rep-penalty');
-    const testTopK         = document.getElementById('test-top-k');
-    const valTopK          = document.getElementById('val-top-k');
-    const testTopP         = document.getElementById('test-top-p');
-    const valTopP          = document.getElementById('val-top-p');
-    const testRemoveCeceo  = document.getElementById('test-remove-ceceo');
-
-    // Update label values on slider movement
-    testTemp.addEventListener('input', () => valTemp.textContent = testTemp.value);
-    testLengthPenalty.addEventListener('input', () => valLenPenalty.textContent = testLengthPenalty.value);
-    testRepPenalty.addEventListener('input', () => valRepPenalty.textContent = testRepPenalty.value);
-    testTopK.addEventListener('input', () => valTopK.textContent = testTopK.value);
-    testTopP.addEventListener('input', () => valTopP.textContent = testTopP.value);
-
-    let currentPlayingAudio = null;
-
-    // =========================================================================
-    //  Server Control
-    // =========================================================================
-
-    async function checkStatus() {
+        // Cargar voces del catálogo
         try {
-            const res = await fetch(`${API}/api/status`);
-            const data = await res.json();
-            setStatus(data.status === 'connected');
-        } catch {
-            setStatus(false);
-        }
-    }
-
-    function setStatus(connected) {
-        if (connected) {
-            statusBadge.className = 'status-badge status-connected';
-            statusBadge.querySelector('.status-text').textContent = 'Conectado';
-            btnStart.disabled = true;
-            btnStop.disabled = false;
-        } else {
-            statusBadge.className = 'status-badge status-disconnected';
-            statusBadge.querySelector('.status-text').textContent = 'Apagado';
-            btnStart.disabled = false;
-            btnStop.disabled = false;
-        }
-    }
-
-    function setStatusLoading(text) {
-        statusBadge.className = 'status-badge status-loading';
-        statusBadge.querySelector('.status-text').textContent = text;
-        btnStart.disabled = true;
-        btnStop.disabled = true;
-    }
-
-    btnStart.addEventListener('click', async () => {
-        setStatusLoading('Iniciando...');
-        try {
-            const res = await fetch(`${API}/api/server/start`, { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                // Poll until server is ready (up to 90s)
-                setStatusLoading('Cargando modelo...');
-                pollUntilReady(90);
+            const res = await fetch('/api/voices');
+            if (res.ok) {
+                catalog = await res.json();
+                renderVoiceOptions();
             } else {
-                alert('Error: ' + data.error);
-                checkStatus();
+                showStatus('Error al cargar catálogo de voces', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showStatus('No se pudo conectar con el servidor', 'error');
+        }
+
+        // Cargar texto de ejemplo inicial
+        scriptText.value = SAMPLES.es;
+        updateTextStats();
+    }
+
+    async function loadServerStatus() {
+        try {
+            const res = await fetch('/api/status');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.gpu_available && gpuBadge) {
+                    gpuBadge.innerHTML = `<i class="fa-solid fa-microchip"></i> <span>Kokoro (${data.device})</span>`;
+                    gpuBadge.title = `Aceleración GPU activa: ${data.device}`;
+                }
             }
         } catch (e) {
-            alert('Error de conexion: ' + e.message);
-            checkStatus();
-        }
-    });
-
-    btnStop.addEventListener('click', async () => {
-        setStatusLoading('Apagando...');
-        try {
-            await fetch(`${API}/api/server/stop`, { method: 'POST' });
-        } catch { /* ignore */ }
-        // Wait a moment then recheck
-        setTimeout(checkStatus, 1500);
-    });
-
-    btnRefresh.addEventListener('click', () => {
-        btnRefresh.querySelector('i').classList.add('fa-spin');
-        checkStatus().then(() => loadSpeakers()).finally(() => {
-            setTimeout(() => btnRefresh.querySelector('i').classList.remove('fa-spin'), 400);
-        });
-    });
-
-    function pollUntilReady(maxSeconds) {
-        let elapsed = 0;
-        const interval = setInterval(async () => {
-            elapsed += 3;
-            if (elapsed > maxSeconds) {
-                clearInterval(interval);
-                setStatus(false);
-                alert('El servidor tardo demasiado en iniciar. Revisa el log para ver errores.');
-                return;
-            }
-            try {
-                const res = await fetch(`${API}/api/status`);
-                const data = await res.json();
-                if (data.status === 'connected') {
-                    clearInterval(interval);
-                    setStatus(true);
-                    loadSpeakers();
-                }
-            } catch { /* keep trying */ }
-        }, 3000);
-    }
-
-    // Log viewer
-    btnRefreshLog.addEventListener('click', loadLog);
-    async function loadLog() {
-        try {
-            const res = await fetch(`${API}/api/server/log?lines=60`);
-            const data = await res.json();
-            serverLog.textContent = data.log || 'Sin datos de log...';
-            serverLog.scrollTop = serverLog.scrollHeight;
-        } catch {
-            serverLog.textContent = 'Error al cargar el log.';
+            console.warn("Status check failed:", e);
         }
     }
 
-    // =========================================================================
-    //  Voice Management
-    // =========================================================================
+    // 2. Renderizar Opciones de Voz
+    function renderVoiceOptions() {
+        voiceSelect.innerHTML = '';
+        const voices = catalog[currentLang] || [];
 
-    async function loadSpeakers() {
-        try {
-            const res = await fetch(`${API}/api/speakers`);
-            const data = await res.json();
-            renderVoiceList(data.speakers || []);
-            populateTestSpeaker(data.speakers || []);
-        } catch {
-            voiceList.innerHTML = '<div class="voice-list-empty"><i class="fa-solid fa-triangle-exclamation"></i><span>Error al cargar voces</span></div>';
-        }
-    }
-
-    function renderVoiceList(speakers) {
-        if (speakers.length === 0) {
-            voiceList.innerHTML = '<div class="voice-list-empty"><i class="fa-solid fa-volume-xmark"></i><span>No hay voces cargadas</span></div>';
+        if (voices.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No hay voces disponibles';
+            voiceSelect.appendChild(opt);
+            voiceDesc.textContent = '';
             return;
         }
-        voiceList.innerHTML = '';
-        speakers.forEach(s => {
-            const item = document.createElement('div');
-            item.className = 'voice-item';
-            item.innerHTML = `
-                <div class="voice-item-icon"><i class="fa-solid fa-waveform-lines"></i></div>
-                <div class="voice-item-info">
-                    <div class="voice-item-name">${s.name}</div>
-                    <div class="voice-item-size">${s.size_kb} KB</div>
-                </div>
-                <div class="voice-item-actions">
-                    <button class="btn-play-voice" title="Escuchar"><i class="fa-solid fa-play"></i></button>
-                    <button class="btn-delete-voice" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            `;
-            // Play button
-            const btnPlay = item.querySelector('.btn-play-voice');
-            btnPlay.addEventListener('click', () => playVoice(s.name, btnPlay));
-            // Delete button
-            item.querySelector('.btn-delete-voice').addEventListener('click', () => deleteVoice(s.name));
-            voiceList.appendChild(item);
-        });
-    }
 
-    function populateTestSpeaker(speakers) {
-        const current = testSpeaker.value;
-        testSpeaker.innerHTML = '<option value="">-- selecciona --</option>';
-        speakers.forEach(s => {
+        voices.forEach(v => {
             const opt = document.createElement('option');
-            opt.value = s.name;
-            opt.textContent = s.name;
-            testSpeaker.appendChild(opt);
+            opt.value = v.id;
+            const star = v.recommended ? ' ⭐' : '';
+            opt.textContent = `${v.name} (${v.gender} • ${v.accent})${star}`;
+            voiceSelect.appendChild(opt);
         });
-        if (current && speakers.find(s => s.name === current)) {
-            testSpeaker.value = current;
-        } else if (speakers.length > 0) {
-            testSpeaker.value = speakers[0].name;
-        }
-        // Update API doc example
-        if (testSpeaker.value) {
-            apiSpeakerName.textContent = testSpeaker.value;
+
+        // Seleccionar la primera recomendada
+        const firstRec = voices.find(v => v.recommended) || voices[0];
+        voiceSelect.value = firstRec.id;
+        updateVoiceDescription();
+    }
+
+    function updateVoiceDescription() {
+        const voices = catalog[currentLang] || [];
+        const selected = voices.find(v => v.id === voiceSelect.value);
+        if (selected) {
+            const engineLabel = selected.engine === 'kokoro' ? 'Motor Kokoro-82M (GPU)' : 'Motor Edge Neural (Estudio)';
+            voiceDesc.innerHTML = `<strong>${selected.name}:</strong> ${selected.description} <br><small class="engine-tag">${engineLabel}</small>`;
+        } else {
+            voiceDesc.textContent = '';
         }
     }
 
-    testSpeaker.addEventListener('change', () => {
-        if (testSpeaker.value) apiSpeakerName.textContent = testSpeaker.value;
-    });
+    // 3. Control de Velocidad Pedagógica
+    function setSpeed(val) {
+        currentSpeed = parseFloat(val);
+        speedRange.value = currentSpeed;
+        
+        let label = `${currentSpeed.toFixed(2)}x`;
+        if (currentSpeed === 0.95) label += ' (Recomendado Docente)';
+        else if (currentSpeed === 0.90) label += ' (Pausado / Explicativo)';
+        else if (currentSpeed === 1.00) label += ' (Normal)';
+        else if (currentSpeed === 1.10) label += ' (Dinámico)';
+        
+        speedDisplay.textContent = label;
 
-    function playVoice(name, btnEl) {
-        // Stop any currently playing audio
-        if (currentPlayingAudio) {
-            currentPlayingAudio.pause();
-            currentPlayingAudio = null;
-            document.querySelectorAll('.btn-play-voice').forEach(b => b.innerHTML = '<i class="fa-solid fa-play"></i>');
-        }
-        const audio = new Audio(`${API}/api/speakers/${encodeURIComponent(name)}/audio`);
-        audio.play();
-        currentPlayingAudio = audio;
-        btnEl.innerHTML = '<i class="fa-solid fa-pause"></i>';
-        audio.addEventListener('ended', () => {
-            btnEl.innerHTML = '<i class="fa-solid fa-play"></i>';
-            currentPlayingAudio = null;
+        // Actualizar botón preset activo
+        speedPresets.forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.speed) === currentSpeed);
         });
+
+        updateTextStats();
     }
 
-    async function deleteVoice(name) {
-        if (!confirm(`Eliminar la voz "${name}"?`)) return;
-        try {
-            await fetch(`${API}/api/speakers/${encodeURIComponent(name)}`, { method: 'DELETE' });
-            loadSpeakers();
-        } catch { alert('Error al eliminar.'); }
+    // 4. Estadísticas del Texto (Palabras, Caracteres, Duración Estimada)
+    function updateTextStats() {
+        const text = scriptText.value.trim();
+        const chars = text.length;
+        const words = text ? text.split(/\s+/).length : 0;
+
+        // Estimación: ~140 palabras por minuto a 1.0x para material docente
+        const wordsPerSec = (140 * currentSpeed) / 60;
+        const estSeconds = words > 0 ? Math.ceil(words / wordsPerSec) : 0;
+
+        charCounter.textContent = `${chars} caracteres | ${words} palabras | ~${estSeconds}s estimadas`;
     }
 
-    // Upload
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropzone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
-    });
-    fileInput.addEventListener('change', () => { if (fileInput.files.length) uploadFiles(fileInput.files); });
-
-    async function uploadFiles(files) {
-        for (const file of files) {
-            if (!file.name.toLowerCase().endsWith('.wav')) {
-                uploadStatus.style.color = 'var(--error)';
-                uploadStatus.textContent = `"${file.name}" no es .wav, ignorado.`;
-                continue;
-            }
-            uploadStatus.style.color = 'var(--text-secondary)';
-            uploadStatus.textContent = `Subiendo ${file.name}...`;
-            const fd = new FormData();
-            fd.append('file', file);
-            try {
-                const res = await fetch(`${API}/api/speakers/upload`, { method: 'POST', body: fd });
-                const data = await res.json();
-                if (data.success) {
-                    uploadStatus.style.color = 'var(--success)';
-                    uploadStatus.textContent = `"${data.filename}" subido (${data.size_kb} KB)`;
-                } else {
-                    uploadStatus.style.color = 'var(--error)';
-                    uploadStatus.textContent = 'Error: ' + data.error;
-                }
-            } catch {
-                uploadStatus.style.color = 'var(--error)';
-                uploadStatus.textContent = 'Error de conexion al subir.';
-            }
+    // 5. Generar Narración
+    async function handleGenerate() {
+        const text = scriptText.value.trim();
+        if (!text) {
+            showStatus('Por favor, escribe un guion antes de generar.', 'warning');
+            scriptText.focus();
+            return;
         }
-        loadSpeakers();
-        fileInput.value = '';
-    }
 
-    // =========================================================================
-    //  Quick Test
-    // =========================================================================
+        const voiceId = voiceSelect.value;
+        if (!voiceId) {
+            showStatus('Selecciona una voz para continuar.', 'warning');
+            return;
+        }
 
-    btnTest.addEventListener('click', async () => {
-        const speaker = testSpeaker.value;
-        const lang = testLang.value;
-        const text = testText.value.trim();
-
-        if (!speaker) { alert('Selecciona una voz de referencia.'); return; }
-        if (!text) { alert('Escribe un texto de prueba.'); return; }
-
-        btnTest.disabled = true;
-        testStatus.textContent = 'Generando audio...';
-        testStatus.style.color = 'var(--text-secondary)';
-        testAudioCtn.style.display = 'none';
+        // UI Loading
+        btnGenerate.disabled = true;
+        btnGenerate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Sintetizando lección...</span>`;
+        showStatus('Procesando audio de alta fidelidad...', 'loading');
 
         const startTime = Date.now();
 
         try {
-            const temperature = parseFloat(testTemp.value);
-            const length_penalty = parseFloat(testLengthPenalty.value);
-            const repetition_penalty = parseFloat(testRepPenalty.value);
-            const top_k = parseInt(testTopK.value, 10);
-            const top_p = parseFloat(testTopP.value);
-            const remove_ceceo = testRemoveCeceo.checked;
+            const payload = {
+                text: text,
+                voice: voiceId,
+                language: currentLang,
+                speed: currentSpeed
+            };
 
-            const res = await fetch(`${API}/api/tts`, {
+            const response = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text,
-                    speaker_wav: speaker,
-                    language: lang,
-                    temperature,
-                    length_penalty,
-                    repetition_penalty,
-                    top_k,
-                    top_p,
-                    remove_ceceo
-                }),
+                body: JSON.stringify(payload)
             });
 
-            if (!res.ok) {
-                let errMsg;
-                try { errMsg = (await res.json()).detail; } catch { errMsg = res.statusText; }
-                testStatus.style.color = 'var(--error)';
-                testStatus.textContent = 'Error: ' + errMsg;
-                btnTest.disabled = false;
-                return;
+            if (!response.ok) {
+                let errMsg = 'Error al generar el audio';
+                try {
+                    const errData = await response.json();
+                    errMsg = errData.detail || errMsg;
+                } catch (e) {}
+                throw new Error(errMsg);
             }
 
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            testAudio.src = url;
-            testAudioCtn.style.display = 'block';
-            testAudio.play();
-
+            const audioBlob = await response.blob();
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            testStatus.style.color = 'var(--success)';
-            testStatus.textContent = `Listo (${elapsed}s)`;
-        } catch (e) {
-            testStatus.style.color = 'var(--error)';
-            testStatus.textContent = 'Error: ' + e.message;
-        }
-        btnTest.disabled = false;
-    });
 
-    // Copy URL
-    btnCopyUrl.addEventListener('click', () => {
-        const url = document.getElementById('api-url').textContent;
-        navigator.clipboard.writeText(url).then(() => {
-            btnCopyUrl.innerHTML = '<i class="fa-solid fa-check"></i>';
-            setTimeout(() => { btnCopyUrl.innerHTML = '<i class="fa-solid fa-copy"></i>'; }, 1500);
+            // Liberar URL previa si existía
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+
+            currentAudioUrl = URL.createObjectURL(audioBlob);
+
+            // Mostrar reproductor
+            audioPlayer.src = currentAudioUrl;
+            audioPlayer.load();
+            audioPlayer.play().catch(() => {}); // Autoplay si el navegador lo permite
+
+            const voices = catalog[currentLang] || [];
+            const selectedVoice = voices.find(v => v.id === voiceId);
+            const voiceName = selectedVoice ? selectedVoice.name : voiceId;
+
+            audioTitle.textContent = `Narración: ${voiceName}`;
+            const sizeKb = (audioBlob.size / 1024).toFixed(0);
+            audioMeta.textContent = `WAV PCM • ${sizeKb} KB • Generado en ${elapsed}s (${currentSpeed}x)`;
+
+            // Configurar botón de descarga
+            const dateStr = new Date().toISOString().slice(0, 10);
+            btnDownloadAudio.href = currentAudioUrl;
+            btnDownloadAudio.download = `${voiceId}_${dateStr}.wav`;
+
+            audioCard.style.display = 'block';
+            audioCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            showStatus(`¡Audio generado con éxito en ${elapsed}s!`, 'success');
+
+        } catch (error) {
+            console.error(error);
+            showStatus(`Error: ${error.message}`, 'error');
+        } finally {
+            btnGenerate.disabled = false;
+            btnGenerate.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generar Narración</span>`;
+        }
+    }
+
+    function showStatus(msg, type) {
+        generationStatus.className = `generation-status status-${type}`;
+        let icon = '';
+        if (type === 'loading') icon = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+        else if (type === 'success') icon = '<i class="fa-solid fa-check"></i>';
+        else if (type === 'error') icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        else if (type === 'warning') icon = '<i class="fa-solid fa-circle-exclamation"></i>';
+
+        generationStatus.innerHTML = `${icon} <span>${msg}</span>`;
+    }
+
+    // 6. Event Listeners
+    langTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const newLang = tab.dataset.lang;
+            if (newLang === currentLang) return;
+
+            langTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            currentLang = newLang;
+            renderVoiceOptions();
+
+            // Si el texto coincide con el ejemplo anterior o está vacío, poner el nuevo ejemplo
+            if (!scriptText.value.trim() || scriptText.value.trim() === SAMPLES.es || scriptText.value.trim() === SAMPLES.en) {
+                scriptText.value = SAMPLES[currentLang];
+                updateTextStats();
+            }
         });
     });
 
-    // =========================================================================
-    //  Init
-    // =========================================================================
-    checkStatus();
-    loadSpeakers();
-    setInterval(checkStatus, 10000);
+    voiceSelect.addEventListener('change', updateVoiceDescription);
+
+    speedRange.addEventListener('input', (e) => setSpeed(e.target.value));
+
+    speedPresets.forEach(btn => {
+        btn.addEventListener('click', () => setSpeed(btn.dataset.speed));
+    });
+
+    scriptText.addEventListener('input', updateTextStats);
+
+    btnInsertPause.addEventListener('click', () => {
+        const start = scriptText.selectionStart;
+        const end = scriptText.selectionEnd;
+        const val = scriptText.value;
+        const pauseTag = ' [pausa] ';
+        scriptText.value = val.substring(0, start) + pauseTag + val.substring(end);
+        scriptText.selectionStart = scriptText.selectionEnd = start + pauseTag.length;
+        scriptText.focus();
+        updateTextStats();
+    });
+
+    btnSampleText.addEventListener('click', () => {
+        scriptText.value = SAMPLES[currentLang];
+        updateTextStats();
+    });
+
+    btnClearText.addEventListener('click', () => {
+        scriptText.value = '';
+        updateTextStats();
+        scriptText.focus();
+    });
+
+    btnGenerate.addEventListener('click', handleGenerate);
+
+    // Permitir Ctrl+Enter para generar rápidamente
+    scriptText.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            handleGenerate();
+        }
+    });
+
+    // Iniciar aplicación
+    init();
 });

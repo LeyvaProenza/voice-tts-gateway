@@ -1,25 +1,25 @@
-# 🎙️ Voice-TTS Gateway & Control Panel
+# 🎙️ Voice-TTS Studio | Narración y Software Educativo
 
-Servidor local de síntesis y clonación de voz (**Text-to-Speech**) basado en **XTTSv2** (con aceleración GPU CUDA) e integración nativa con **Microsoft Edge Neural TTS**. Incluye un **API Gateway en FastAPI** y un **Panel de Control Web** interactivo.
+Servidor local de síntesis de voz (Text-to-Speech) de alta fidelidad, optimizado para **narraciones pedagógicas, cursos interactivos y software educativo**.
 
-Desarrollado para conectarse directamente con clientes de IA o aplicaciones externas como **Antigravity**, permitiendo generar audios de alta fidelidad a partir de texto.
+Combina **Microsoft Edge Neural TTS** para español con calidad de estudio y **Kokoro-82M** acelerado por GPU (**NVIDIA CUDA**) para inglés con cadencia cinematográfica humana.
 
 ---
 
 ## ⚡ Características Principales
 
-- 🧠 **Motor Doble de TTS**:
-  - **XTTSv2 Local**: Clonación de voz de alta fidelidad a partir de muestras `.wav` de 3 a 10 segundos (acelerado por GPU con PyTorch/CUDA).
-  - **Edge Neural TTS Directo**: Bypass automático para voces neurales ultra-claras (ej. `es-MX-JorgeNeural`, `es-MX-DaliaNeural`) con calidad de estudio y respuesta instantánea.
-- 🎛️ **Panel de Control Web (Dashboard)**:
-  - Control en tiempo real del estado del servidor XTTS (`Activo` / `Desconectado`).
-  - Botones para encender/apagar la GPU y consultar logs en vivo.
-  - Gestión Drag & Drop de voces de referencia (`.wav`).
-  - Preescucha de muestras de audio y prueba rápida de síntesis.
-- 🇲🇽 **Filtro de Seseo Latinoamericano**:
-  - Opción `remove_ceceo` para adaptar automáticamente ortografías con ceceo castellano (`z`, `ce`, `ci`) a seseo latinoamericano (`s`, `se`, `si`), evitando pronunciaciones en "th" con modelos en español europeo.
-- 🔌 **API REST OpenAPI / Swagger**:
-  - Endpoint unificado `POST /api/tts` que devuelve el stream del archivo `.wav` directamente para su integración en automatizaciones o canalizaciones de video/powerpoint.
+- 🇲🇽 **Español Docente (Microsoft Edge Neural)**:
+  - Voces recomendadas: `es-MX-JorgeNeural` (Masculino, sereno y explicativo) y `es-MX-DaliaNeural` (Femenina, dicción cristalina).
+  - Cero consumo de memoria VRAM (ultra-rápido y sin saturar tu tarjeta gráfica).
+- 🇺🇸 **Inglés Educativo (Kokoro-82M en GPU)**:
+  - Voces recomendadas: `af_heart` (la voz insignia de Kokoro, cálida y empática para e-learning) y `am_adam` (narrador documental académico).
+  - Acelerado por hardware con **NVIDIA CUDA** (optimizado para GPUs RTX 3050 de 6 GB, consumiendo solo ~400 MB de VRAM).
+- ⏱️ **Control de Ritmo Pedagógico**:
+  - Ajuste de velocidad predeterminado a **`0.95x`** (`-5%`), el tempo ideal para que los estudiantes asimilen conceptos complejos sin fatiga auditiva.
+- ⏸️ **Etiquetas de Pausa Natural**:
+  - Soporte para etiquetas `[pausa]` en los guiones, generando silencios naturales entre diapositivas o ideas clave.
+- 🔌 **API REST Unificada para Antigravity**:
+  - Endpoint `POST /api/tts` que devuelve el stream del archivo `.wav` (PCM 16-bit) listo para reproducir o insertar directamente en diapositivas o videos.
 
 ---
 
@@ -27,129 +27,79 @@ Desarrollado para conectarse directamente con clientes de IA o aplicaciones exte
 
 ```
 Voice-TTS/
-├── app.py              # API Gateway FastAPI & Panel de Control Backend
-├── start_app.bat       # Script batch para iniciar el Panel de Control Web (puerto 8000)
-├── start_tts.bat       # Script batch para iniciar solo el motor XTTS (puerto 8020)
-├── stop_tts.bat        # Script batch para detener el servidor XTTS y liberar la GPU
-├── requirements.txt    # Lista de dependencias del proyecto
-├── .gitignore          # Reglas de exclusión de Git (excluye pesos de modelo y venv)
-├── README.md           # Documentación principal para GitHub
-├── static/             # Frontend del Panel de Control Web
-│   ├── index.html      # Estructura del dashboard
-│   ├── script.js       # Lógica del cliente y llamadas a la API
-│   └── style.css       # Estilos visuales del panel
-├── speakers/           # Colección de archivos .wav de referencia para clonación
-├── models/             # Pesos del modelo XTTSv2 (descargados automáticamente)
-└── output/             # Directorio de salida para audios sintetizados
+├── app.py              # Servidor API FastAPI con motores Edge-TTS y Kokoro AI
+├── start_app.bat       # Inicia el Estudio Web en http://localhost:8000
+├── requirements.txt    # Dependencias del proyecto
+├── .gitignore          # Reglas de exclusión de Git
+├── README.md           # Documentación del proyecto
+├── static/             # Interfaz web del Estudio de Locución
+│   ├── index.html      # Estructura del panel
+│   ├── script.js       # Lógica del cliente y reproductor
+│   └── style.css       # Estilos visuales modernos
+└── output/             # Directorio de salida para audios generados
 ```
 
 ---
 
 ## 🚀 Inicio Rápido
 
-### Requisitos Previos
-- **Python**: v3.10 o superior.
-- **FFmpeg**: Instalado y añadido al PATH del sistema (necesario para procesamiento de audio con `pydub`).
-- **NVIDIA GPU** (Opcional pero recomendado): Con controladores CUDA 12.1+ para síntesis en tiempo real con XTTS.
+### 1. Iniciar con un solo clic (Windows)
+Haz doble clic en **`start_app.bat`**. 
+Esto abrirá automáticamente tu navegador en `http://localhost:8000`.
 
-### Instalación
-
-1. **Clonar el repositorio**:
-   ```bash
-   git clone https://github.com/TU_USUARIO/Voice-TTS.git
-   cd Voice-TTS
-   ```
-
-2. **Crear e inicializar el entorno virtual**:
-   ```bash
-   python -m venv .venv
-   # En Windows:
-   .venv\Scripts\activate
-   # En Linux/macOS:
-   source .venv/bin/activate
-   ```
-
-3. **Instalar dependencias**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
-## 🖥️ Uso del Panel de Control Web
-
-Para iniciar el servidor gateway y abrir la interfaz gráfica:
-
+### 2. Inicio manual desde la terminal
 ```bash
-# Ejecutar el script batch en Windows:
-start_app.bat
+.venv\Scripts\activate
+python -m uvicorn app:app --port 8000 --host 127.0.0.1
 ```
-
-O manualmente con Uvicorn:
-```bash
-uvicorn app:app --port 8000 --host 127.0.0.1
-```
-
-Abre tu navegador en `http://localhost:8000`. Desde el panel podrás:
-- Encender el servidor local XTTS con un solo clic.
-- Subir archivos `.wav` de referencia para clonar voces.
-- Probar la síntesis de texto en tiempo real.
 
 ---
 
 ## 📡 Documentación de la API
 
 ### Endpoint Principal de Síntesis
-**`POST /api/tts`**
+**`POST http://localhost:8000/api/tts`**
 
 #### Headers:
 `Content-Type: application/json`
 
-#### Cuerpo de la Solicitud (JSON):
+#### Ejemplo en Español (Edge-TTS):
 ```json
 {
-  "text": "Texto a sintetizar en audio.",
-  "speaker_wav": "es-MX-JorgeNeural.wav",
-  "language": "es",
-  "temperature": 0.75,
-  "length_penalty": 1.0,
-  "repetition_penalty": 5.0,
-  "top_k": 50,
-  "top_p": 0.85,
-  "remove_ceceo": true
+  "text": "Bienvenidos a esta lección sobre metodología clínica. [pausa] Hoy revisaremos el formato PICO.",
+  "voice": "es-MX-JorgeNeural",
+  "speed": 0.95
+}
+```
+
+#### Ejemplo en Inglés (Kokoro AI):
+```json
+{
+  "text": "Welcome to this educational session. [pausa] Please follow along with the interactive guide.",
+  "voice": "af_heart",
+  "speed": 0.95
 }
 ```
 
 #### Respuesta:
+- **HTTP Status**: `200 OK`
 - **Content-Type**: `audio/wav`
-- **Body**: Stream binario del archivo `.wav` listo para reproducir o guardar.
+- **Body**: Stream binario del archivo WAV (PCM 16-bit).
 
-#### Ejemplo de uso con cURL:
-```bash
-curl -X POST http://localhost:8000/api/tts \
-     -H "Content-Type: application/json" \
-     -d '{
-           "text": "Hola, este es un mensaje de prueba sintetizado localmente.",
-           "speaker_wav": "es-MX-JorgeNeural.wav",
-           "language": "es"
-         }' \
-     --output mi_audio.wav
-```
+---
 
-### Otros Endpoints Disponibles
+## 🎓 Voces Recomendadas para Software Educativo
 
-| Método | Ruta | Descripción |
-| :--- | :--- | :--- |
-| `GET` | `/api/status` | Estado del servidor XTTS (`connected` / `disconnected`). |
-| `POST` | `/api/server/start` | Enciende el subproceso del servidor XTTS (GPU). |
-| `POST` | `/api/server/stop` | Apaga el servidor XTTS y libera la VRAM. |
-| `GET` | `/api/server/log` | Consulta las últimas líneas del archivo de log. |
-| `GET` | `/api/speakers` | Lista las voces de referencia disponibles en `speakers/`. |
-| `POST` | `/api/speakers/upload` | Sube un nuevo archivo de voz `.wav`. |
-| `DELETE` | `/api/speakers/{filename}` | Elimina un archivo de voz de referencia. |
+| Idioma | ID de Voz | Género | Acento | Perfil de Locución |
+| :--- | :--- | :--- | :--- | :--- |
+| **Español** | `es-MX-JorgeNeural` | Masculino | México | ⭐ **Recomendado**. Tono sereno, confiable y explicativo. |
+| **Español** | `es-MX-DaliaNeural` | Femenino | México | ⭐ **Recomendada**. Dicción limpia y cercana para lecciones. |
+| **Español** | `es-CO-GonzaloNeural` | Masculino | Colombia | Formal y neutro, ideal para lecturas científicas. |
+| **Inglés** | `af_heart` | Femenino | American | ⭐ **Recomendada**. Voz cálida, empática y de máxima fidelidad. |
+| **Inglés** | `am_adam` | Masculino | American | ⭐ **Recomendado**. Narrador estilo documental y conferencias. |
+| **Inglés** | `bf_emma` | Femenino | British | Acento británico académico y elegante. |
 
 ---
 
 ## 📄 Licencia
-
-Proyecto distribuido bajo la licencia MIT. Libre para uso personal, educativo y comercial.
+Proyecto distribuido bajo la licencia MIT.
