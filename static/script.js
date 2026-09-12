@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioTitle = document.getElementById('audio-title');
     const audioMeta = document.getElementById('audio-meta');
     const gpuBadge = document.getElementById('gpu-badge');
+    const mimoBadge = document.getElementById('mimo-badge');
+    const directorModeContainer = document.getElementById('director-mode-container');
+    const stylePromptInput = document.getElementById('style-prompt-input');
+    const btnTagLaughter = document.getElementById('btn-tag-laughter');
+    const btnTagSigh = document.getElementById('btn-tag-sigh');
+    const btnTagWhisper = document.getElementById('btn-tag-whisper');
+    const directorPresets = document.querySelectorAll('.btn-director-preset');
 
     const SAMPLES = {
         es: "Buenos días a todos. En esta lección aprenderemos los conceptos fundamentales de la investigación científica. [pausa] Es indispensable estructurar una pregunta clara y valorar rigurosamente la evidencia metodológica.",
@@ -38,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Inicialización
     async function init() {
-        // Cargar estado y GPU
+        // Cargar estado y GPU / MiMo
         loadServerStatus();
 
         // Cargar voces del catálogo
@@ -68,6 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.gpu_available && gpuBadge) {
                     gpuBadge.innerHTML = `<i class="fa-solid fa-microchip"></i> <span>Kokoro (${data.device})</span>`;
                     gpuBadge.title = `Aceleración GPU activa: ${data.device}`;
+                }
+                if (mimoBadge && data.engines && data.engines.mimo) {
+                    const isMimoOk = !data.engines.mimo.includes('Inactivo');
+                    mimoBadge.style.opacity = isMimoOk ? '1' : '0.5';
+                    mimoBadge.title = isMimoOk ? 'Xiaomi MiMo v2.5 Cloud Activo' : 'MIMO_API_KEY no configurada';
                 }
             }
         } catch (e) {
@@ -120,10 +132,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const voices = catalog[currentLang] || [];
         const selected = voices.find(v => v.id === voiceSelect.value);
         if (selected) {
-            const engineLabel = selected.engine === 'kokoro' ? 'Motor Kokoro-82M (GPU)' : 'Motor Edge Neural (Estudio)';
+            let engineLabel = 'Motor Edge Neural (Estudio)';
+            const isMimo = selected.engine === 'mimo' || (selected.id && selected.id.startsWith('mimo-'));
+            if (selected.engine === 'kokoro') {
+                engineLabel = 'Motor Kokoro-82M (GPU)';
+            } else if (isMimo) {
+                engineLabel = 'Motor Xiaomi MiMo v2.5 (Cloud • Modo Director & Audio Tags)';
+            }
+
             voiceDesc.innerHTML = `<strong>${selected.name}:</strong> ${selected.description} <br><small class="engine-tag">${engineLabel}</small>`;
+
+            // Mostrar u ocultar panel de Modo Director y botones de tags de MiMo
+            if (directorModeContainer) {
+                directorModeContainer.style.display = isMimo ? 'block' : 'none';
+            }
+            if (btnTagLaughter) btnTagLaughter.style.display = isMimo ? 'inline-flex' : 'none';
+            if (btnTagSigh) btnTagSigh.style.display = isMimo ? 'inline-flex' : 'none';
+            if (btnTagWhisper) btnTagWhisper.style.display = isMimo ? 'inline-flex' : 'none';
         } else {
             voiceDesc.textContent = '';
+            if (directorModeContainer) directorModeContainer.style.display = 'none';
+            if (btnTagLaughter) btnTagLaughter.style.display = 'none';
+            if (btnTagSigh) btnTagSigh.style.display = 'none';
+            if (btnTagWhisper) btnTagWhisper.style.display = 'none';
         }
     }
 
@@ -191,6 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 speed: currentSpeed,
                 format: currentFormat
             };
+
+            if (stylePromptInput && stylePromptInput.value.trim()) {
+                payload.style_prompt = stylePromptInput.value.trim();
+            }
 
             const response = await fetch('/api/tts', {
                 method: 'POST',
@@ -301,15 +336,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     scriptText.addEventListener('input', updateTextStats);
 
-    btnInsertPause.addEventListener('click', () => {
+    function insertTagAtCursor(tag) {
         const start = scriptText.selectionStart;
         const end = scriptText.selectionEnd;
         const val = scriptText.value;
-        const pauseTag = ' [pausa] ';
-        scriptText.value = val.substring(0, start) + pauseTag + val.substring(end);
-        scriptText.selectionStart = scriptText.selectionEnd = start + pauseTag.length;
+        const paddedTag = ` ${tag} `;
+        scriptText.value = val.substring(0, start) + paddedTag + val.substring(end);
+        scriptText.selectionStart = scriptText.selectionEnd = start + paddedTag.length;
         scriptText.focus();
         updateTextStats();
+    }
+
+    btnInsertPause.addEventListener('click', () => insertTagAtCursor('[pausa]'));
+
+    if (btnTagLaughter) {
+        btnTagLaughter.addEventListener('click', () => insertTagAtCursor('[laughter]'));
+    }
+    if (btnTagSigh) {
+        btnTagSigh.addEventListener('click', () => insertTagAtCursor('[sigh]'));
+    }
+    if (btnTagWhisper) {
+        btnTagWhisper.addEventListener('click', () => insertTagAtCursor('[whisper]'));
+    }
+
+    directorPresets.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (stylePromptInput) {
+                stylePromptInput.value = btn.dataset.style;
+                stylePromptInput.focus();
+            }
+        });
     });
 
     btnSampleText.addEventListener('click', () => {

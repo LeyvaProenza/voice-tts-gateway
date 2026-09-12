@@ -21,6 +21,7 @@ El servidor cuenta con enrutamiento inteligente automático:
 | :--- | :--- | :--- | :--- | :--- |
 | **Español** | Microsoft Edge Neural | `es-MX-JorgeNeural` (Masculino)<br>`es-MX-DaliaNeural` (Femenino) | 0 MB VRAM | Narración educativa, clases y cursos en español con dicción impecable. |
 | **Inglés** | **Kokoro-82M AI** | `af_heart` (Insignia Kokoro)<br>`af_bella,af_sarah` (Mezcla Educativa)<br>`am_adam` (Docente US) | ~400 MB VRAM (CUDA) | Locución en inglés de calidad cinematográfica, soporte nativo de **Voice Blending**. |
+| **Multilingüe (ES / EN)** | **Xiaomi MiMo v2.5** | `mimo-Chloe` (Femenino)<br>`mimo-Mia` (Femenino)<br>`mimo-Milo` (Masculino)<br>`mimo-Dean` (Masculino) | 0 MB VRAM (Cloud API) | Expresividad extrema, control por lenguaje natural (**Modo Director**) y efectos de sonido (**Audio Tags**: `[laughter]`, `[sigh]`, `[whisper]`). |
 
 ---
 
@@ -51,7 +52,27 @@ Cualquier combinación válida separada por comas es aceptada automáticamente p
 
 ---
 
-## 📡 3. Endpoints Disponibles
+## 🎭 3. Modo Director y Audio Tags (Xiaomi MiMo v2.5)
+
+Cuando utilizas una voz de Xiaomi MiMo (`mimo-Chloe`, `mimo-Mia`, `mimo-Milo`, `mimo-Dean`), puedes aplicar dos capacidades de control exclusivas:
+
+### A. Modo Director (`style_prompt`)
+Envía instrucciones en lenguaje natural al modelo para definir su entonación, estado de ánimo o cadencia:
+- `"Tono alegre, enérgico y motivador para estudiantes"`
+- `"Voz pausada, serena y reflexiva para una meditación guiada"`
+- `"Estilo locutor de documental serio y científico"`
+- `"Habla susurrando como si contaras un secreto fascinante"`
+
+### B. Audio Tags Emocionales e Inline
+Puedes intercalar etiquetas de sonido directamente dentro del texto:
+- `[laughter]` → Risa natural integrada en la frase.
+- `[sigh]` → Suspiro reflexivo.
+- `[whisper]` → Paso a modo susurro.
+- `[pant]`, `[gasp]`, `[cough]` → Respiraciones agitadas o toses realistas.
+
+---
+
+## 📡 4. Endpoints Disponibles
 
 ### A. Sintetizar Texto a Audio (Principal)
 `POST /api/tts`
@@ -59,10 +80,11 @@ Cualquier combinación válida separada por comas es aceptada automáticamente p
 #### Parámetros del Body (JSON):
 | Campo | Tipo | Obligatorio | Por Omisión | Descripción |
 | :--- | :--- | :--- | :--- | :--- |
-| **`text`** | string | **Sí** | - | Texto a narrar. Admite etiquetas `[pausa]` para insertar respiros naturales. |
-| **`voice`** | string | No | `"es-MX-JorgeNeural"` | ID de la voz individual (ej. `es-MX-JorgeNeural`, `af_heart`) o mezcla separada por comas (ej. `af_bella,af_sarah`). |
+| **`text`** | string | **Sí** | - | Texto a narrar. Admite etiquetas `[pausa]` y Audio Tags de MiMo (`[laughter]`, `[sigh]`, etc.). |
+| **`voice`** | string | No | `"es-MX-JorgeNeural"` | ID de la voz (ej. `es-MX-JorgeNeural`, `af_heart`, `mimo-Chloe`) o mezclas Kokoro (ej. `af_bella,af_sarah`). |
+| **`style_prompt`** | string | No | `null` | *(Exclusivo Xiaomi MiMo)* Instrucción en lenguaje natural para el Modo Director. |
 | **`speed`** | float | No | `0.95` | Velocidad de habla. `0.95` es el ritmo pedagógico recomendado (`0.75` a `1.25`). |
-| **`format`** | string | No | `"mp3"` | Formato de salida: `"mp3"` (recomendado, ultra ligero) o `"wav"`. |
+| **`format`** | string | No | `"mp3"` | Formato de salida: `"mp3"` (recomendado, ultra ligero a 192kbps) o `"wav"`. |
 | **`language`** | string | No | Auto | `"es"` o `"en"` (se autodetecta según la voz si se omite). |
 
 ---
@@ -88,7 +110,7 @@ Devuelve el estado de conexión y si la GPU (RTX 3050 con CUDA) está activa par
 ```python
 import requests
 
-def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, formato="mp3", archivo_salida="leccion.mp3"):
+def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", estilo=None, velocidad=0.95, formato="mp3", archivo_salida="leccion.mp3"):
     url = "http://localhost:8000/api/tts"
     payload = {
         "text": texto,
@@ -96,6 +118,8 @@ def generar_audio_educativo(texto, voz="es-MX-JorgeNeural", velocidad=0.95, form
         "speed": velocidad,
         "format": formato
     }
+    if estilo:
+        payload["style_prompt"] = estilo
     
     response = requests.post(url, json=payload, timeout=60)
     
@@ -128,13 +152,14 @@ generar_audio_educativo(
     archivo_salida="lesson_bella_sarah.mp3"
 )
 
-# 3. Narración en Inglés con Voz Insignia Individual (Heart en Kokoro GPU)
+# 3. Narración con Xiaomi MiMo (Modo Director + Audio Tags)
 generar_audio_educativo(
-    texto="Artificial intelligence enables educators to personalize learning at scale.",
-    voz="af_heart",
+    texto="¡Excelente trabajo! [laughter] Lograste completar todos los ejercicios de la unidad a la primera.",
+    voz="mimo-Chloe",
+    estilo="Tono alegre, entusiasta y muy motivador",
     velocidad=0.95,
     formato="mp3",
-    archivo_salida="lesson_heart.mp3"
+    archivo_salida="leccion_mimo_chloe.mp3"
 )
 ```
 

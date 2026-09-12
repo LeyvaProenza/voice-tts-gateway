@@ -129,6 +129,12 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
     background: rgba(168, 85, 247, 0.08);
 }
 
+.badge-mimo {
+    color: #ff8533;
+    border-color: rgba(255, 103, 0, 0.35);
+    background: rgba(255, 103, 0, 0.09);
+}
+
 /* Main Container */
 .app-main {
     max-width: 900px;
@@ -430,6 +436,87 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
 #btn-insert-pause {
     color: #06b6d4;
     border-color: rgba(6, 182, 212, 0.3);
+}
+
+.btn-tool-mimo {
+    color: #ff944d !important;
+    border-color: rgba(255, 103, 0, 0.35) !important;
+}
+
+.btn-tool-mimo:hover {
+    background: rgba(255, 103, 0, 0.2) !important;
+    color: #fff !important;
+    border-color: #ff6700 !important;
+}
+
+/* Director Mode (Xiaomi MiMo) */
+.director-group {
+    background: rgba(255, 103, 0, 0.05);
+    border: 1px dashed rgba(255, 103, 0, 0.35);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.director-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.director-header label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ff944d;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.director-presets {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.btn-director-preset {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 103, 0, 0.25);
+    color: var(--text-secondary);
+    border-radius: 12px;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-director-preset:hover {
+    background: rgba(255, 103, 0, 0.2);
+    color: #fff;
+    border-color: #ff6700;
+}
+
+#style-prompt-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 103, 0, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.85rem;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-family: inherit;
+    outline: none;
+    transition: var(--transition);
+}
+
+#style-prompt-input:focus {
+    border-color: #ff6700;
+    box-shadow: 0 0 0 2px rgba(255, 103, 0, 0.2);
 }
 
 textarea#script-text {

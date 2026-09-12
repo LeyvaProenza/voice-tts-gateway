@@ -34,21 +34,99 @@ SPEAKERS_DIR = os.path.join(WORKSPACE_DIR, "speakers")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(SPEAKERS_DIR, exist_ok=True)
 
+def load_env():
+    """Carga variables del archivo .env si existen."""
+    env_file = os.path.join(WORKSPACE_DIR, ".env")
+    if os.path.exists(env_file):
+        with open(env_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip()
+                    if k and k not in os.environ:
+                        os.environ[k] = v
+
+load_env()
+
 # =========================================================================
 #  Catálogo Curado de Voces Educativas
 # =========================================================================
 
 VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
     "es": [
-        # --- MEZCLAS EDUCATIVAS KOKORO EN ESPAÑOL (GPU) ---
+        # --- XIAOMI MIMO V2.5 (MODO DIRECTOR Y EMOCIONES EN LA NUBE) ---
+        {
+            "id": "mimo-Chloe",
+            "name": "Chloe (Xiaomi MiMo)",
+            "gender": "Femenino",
+            "accent": "Expresiva (Multilingüe)",
+            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
+            "recommended": True,
+            "description": "Voz IA generativa con control de emociones (Modo Director) y etiquetas como [laughter] o [sigh]. Excelente dicción en español.",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Mia",
+            "name": "Mia (Xiaomi MiMo)",
+            "gender": "Femenino",
+            "accent": "Cálida y Suave",
+            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
+            "recommended": False,
+            "description": "Tono empático y sereno, ideal para lecciones conversacionales y audiolibros.",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Milo",
+            "name": "Milo (Xiaomi MiMo)",
+            "gender": "Masculino",
+            "accent": "Dinámico",
+            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
+            "recommended": False,
+            "description": "Voz masculina joven y enérgica para explicaciones ágiles y didácticas.",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Dean",
+            "name": "Dean (Xiaomi MiMo)",
+            "gender": "Masculino",
+            "accent": "Documental / Formal",
+            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
+            "recommended": False,
+            "description": "Voz masculina profunda y autorizada para presentaciones magistrales.",
+            "engine": "mimo"
+        },
+        # --- RECOMENDADAS PARA DOCENCIA (MICROSOFT EDGE NEURAL) ---
+        {
+            "id": "es-MX-JorgeNeural",
+            "name": "Jorge (Recomendado)",
+            "gender": "Masculino",
+            "accent": "México",
+            "category": "⭐ Recomendadas Docencia (Edge Neural)",
+            "recommended": True,
+            "description": "Tono sereno, cálido y explicativo. Máxima naturalidad y dicción impecable para docencia y tutoriales.",
+            "engine": "edge-tts"
+        },
+        {
+            "id": "es-MX-DaliaNeural",
+            "name": "Dalia (Recomendada)",
+            "gender": "Femenino",
+            "accent": "México",
+            "category": "⭐ Recomendadas Docencia (Edge Neural)",
+            "recommended": True,
+            "description": "Voz clara, empática y natural, excelente para exposiciones y material formativo.",
+            "engine": "edge-tts"
+        },
+        # --- KOKORO AI ESPAÑOL Y MEZCLAS (EXPERIMENTAL EN GPU) ---
         {
             "id": "ef_dora,af_sarah",
             "name": "Dora & Sarah (Mezcla Educativa)",
             "gender": "Femenino",
             "accent": "Hispano-American Blend",
-            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
-            "recommended": True,
-            "description": "Pronunciación en español de Dora combinada con la calidez pedagógica y cadencia de Sarah. Procesado 100% en GPU.",
+            "category": "Kokoro AI Español (Experimental GPU)",
+            "recommended": False,
+            "description": "Pronunciación en español de Dora con la cadencia de Sarah. Procesado en GPU.",
             "engine": "kokoro"
         },
         {
@@ -56,28 +134,27 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Dora & Bella (Mezcla Dinámica)",
             "gender": "Femenino",
             "accent": "Hispano-American Blend",
-            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
+            "category": "Kokoro AI Español (Experimental GPU)",
             "recommended": False,
-            "description": "Dicción viva con consonantes claras para tutoriales técnicos paso a paso.",
+            "description": "Dicción viva con consonantes claras para explicaciones paso a paso.",
             "engine": "kokoro"
         },
         {
             "id": "ef_dora,em_alex",
-            "name": "Dora & Alex (Mezcla Dual Hispana)",
+            "name": "Dora & Alex (Mezcla Dual)",
             "gender": "Híbrido",
             "accent": "Hispano Blend",
-            "category": "⭐ Mezclas Educativas Kokoro (GPU)",
+            "category": "Kokoro AI Español (Experimental GPU)",
             "recommended": False,
-            "description": "Fusión armónica de tonos femenino y masculino nativos en español.",
+            "description": "Fusión de tonos femenino y masculino nativos en español.",
             "engine": "kokoro"
         },
-        # --- KOKORO AI ESPAÑOL NATIVO (GPU) ---
         {
             "id": "ef_dora",
             "name": "Dora (Kokoro GPU)",
             "gender": "Femenino",
             "accent": "Español",
-            "category": "Kokoro AI Español (GPU)",
+            "category": "Kokoro AI Español (Experimental GPU)",
             "recommended": False,
             "description": "Voz femenina nativa de Kokoro en español ejecutada en local en tu GPU.",
             "engine": "kokoro"
@@ -87,31 +164,10 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
             "name": "Alex (Kokoro GPU)",
             "gender": "Masculino",
             "accent": "Español",
-            "category": "Kokoro AI Español (GPU)",
+            "category": "Kokoro AI Español (Experimental GPU)",
             "recommended": False,
             "description": "Voz masculina nativa de Kokoro en español ejecutada en GPU.",
             "engine": "kokoro"
-        },
-        # --- MICROSOFT EDGE NEURAL (HISPANOAMÉRICA) ---
-        {
-            "id": "es-MX-JorgeNeural",
-            "name": "Jorge (Recomendado)",
-            "gender": "Masculino",
-            "accent": "México",
-            "category": "México (Edge Neural)",
-            "recommended": True,
-            "description": "Tono sereno, cálido y explicativo. Dicción impecable para docencia y tutoriales.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-MX-DaliaNeural",
-            "name": "Dalia (Recomendada)",
-            "gender": "Femenino",
-            "accent": "México",
-            "category": "México (Edge Neural)",
-            "recommended": True,
-            "description": "Voz clara, empática y natural, excelente para exposiciones y material formativo.",
-            "engine": "edge-tts"
         },
         {
             "id": "es-CO-GonzaloNeural",
@@ -345,6 +401,47 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
         },
     ],
     "en": [
+        # --- XIAOMI MIMO V2.5 (DIRECTOR MODE + EMOTIONS) ---
+        {
+            "id": "mimo-Chloe",
+            "name": "Chloe (Xiaomi MiMo)",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
+            "recommended": True,
+            "description": "Ultra-expressive AI voice with natural language Director Mode control and inline audio tags like [laughter] or [sigh].",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Mia",
+            "name": "Mia (Xiaomi MiMo)",
+            "gender": "Femenino",
+            "accent": "American",
+            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
+            "recommended": False,
+            "description": "Warm, engaging female voice for storytelling, podcasts, and conversational lessons.",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Milo",
+            "name": "Milo (Xiaomi MiMo)",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
+            "recommended": False,
+            "description": "Bright, energetic, and youthful male voice.",
+            "engine": "mimo"
+        },
+        {
+            "id": "mimo-Dean",
+            "name": "Dean (Xiaomi MiMo)",
+            "gender": "Masculino",
+            "accent": "American",
+            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
+            "recommended": False,
+            "description": "Authoritative, resonant, and documentary-style male voice.",
+            "engine": "mimo"
+        },
         # --- MEZCLAS EDUCATIVAS (VOICE BLENDING) ---
         {
             "id": "af_bella,af_sarah",
@@ -665,6 +762,9 @@ VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
 
 # Kokoro voice IDs quick lookup set
 KOKORO_VOICES = {v["id"] for v_list in VOICES_CATALOG.values() for v in v_list if v.get("engine") == "kokoro"}
+# MiMo voice IDs quick lookup set
+MIMO_VOICES = {v["id"] for v_list in VOICES_CATALOG.values() for v in v_list if v.get("engine") == "mimo"}
+
 
 # =========================================================================
 #  Motor 1: Microsoft Edge Neural TTS (Español)
@@ -780,6 +880,114 @@ def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_form
     return wav_io.getvalue()
 
 # =========================================================================
+#  Motor 3: Xiaomi MiMo TTS v2.5 (Cloud con Modo Director y Audio Tags)
+# =========================================================================
+
+def get_mimo_api_key() -> Optional[str]:
+    """Obtiene la clave de API de MiMo desde el entorno o archivo .env."""
+    key = os.environ.get("MIMO_API_KEY")
+    if not key:
+        env_file = os.path.join(WORKSPACE_DIR, ".env")
+        if os.path.exists(env_file):
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("MIMO_API_KEY="):
+                        key = line.split("=", 1)[1].strip()
+                        os.environ["MIMO_API_KEY"] = key
+                        break
+    return key
+
+
+def generate_mimo_audio(
+    text: str,
+    voice_name: str,
+    speed: float = 0.95,
+    audio_format: str = "mp3",
+    style_prompt: Optional[str] = None
+) -> bytes:
+    """
+    Genera audio usando la API de Xiaomi MiMo Speech Synthesis v2.5.
+    Soporta Modo Director (style_prompt) y Audio Tags ([laughter], [sigh], etc.).
+    Devuelve audio en formato MP3 (192 kbps) o WAV PCM 16-bit.
+    """
+    import base64
+    import json
+    import urllib.request
+    import urllib.error
+
+    api_key = get_mimo_api_key()
+    if not api_key:
+        raise ValueError("No se encontró MIMO_API_KEY configurada en el archivo .env ni en las variables de entorno.")
+
+    # Normalizar nombre de la voz: remover prefijo 'mimo-' si existe
+    clean_voice = voice_name
+    if clean_voice.lower().startswith("mimo-"):
+        clean_voice = clean_voice[5:]
+    elif clean_voice.lower().startswith("mimo_"):
+        clean_voice = clean_voice[5:]
+
+    if not clean_voice:
+        clean_voice = "Chloe"
+
+    url = "https://api.xiaomimimo.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    # Construir mensajes:
+    # role: assistant -> Texto a sintetizar (puede incluir tags [laughter], [sigh], etc.)
+    # role: user -> Instrucciones de emoción/estilo para el Modo Director
+    messages = []
+    if style_prompt and style_prompt.strip():
+        messages.append({"role": "user", "content": style_prompt.strip()})
+    else:
+        messages.append({"role": "user", "content": "Clear, natural and fluent speech."})
+
+    messages.append({"role": "assistant", "content": text})
+
+    payload = {
+        "model": "mimo-v2.5-tts",
+        "messages": messages,
+        "audio": {
+            "format": "wav",
+            "voice": clean_voice
+        }
+    }
+
+    req_data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=req_data, headers=headers, method="POST")
+
+    try:
+        with urllib.request.urlopen(req, timeout=35) as resp:
+            resp_body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as err:
+        err_msg = err.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"Error HTTP en Xiaomi MiMo API ({err.code}): {err_msg}")
+    except Exception as exc:
+        raise RuntimeError(f"Fallo al conectar con Xiaomi MiMo API: {str(exc)}")
+
+    choices = resp_body.get("choices", [])
+    if not choices:
+        raise RuntimeError(f"Xiaomi MiMo no retornó elecciones de audio: {resp_body}")
+
+    audio_b64 = choices[0].get("message", {}).get("audio", {}).get("data")
+    if not audio_b64:
+        raise RuntimeError(f"Xiaomi MiMo no devolvió datos de audio en la respuesta: {resp_body}")
+
+    wav_bytes = base64.b64decode(audio_b64)
+
+    # Si se solicita MP3, convertir WAV a MP3 a 192 kbps
+    if audio_format.lower() == "mp3":
+        audio_seg = AudioSegment.from_file(io.BytesIO(wav_bytes), format="wav")
+        mp3_io = io.BytesIO()
+        audio_seg.export(mp3_io, format="mp3", bitrate="192k")
+        return mp3_io.getvalue()
+
+    return wav_bytes
+
+# =========================================================================
 #  API Endpoints
 # =========================================================================
 
@@ -800,6 +1008,8 @@ def get_status():
         cuda_ok = False
         device_name = "CPU"
 
+    mimo_active = bool(get_mimo_api_key())
+
     return {
         "status": "connected",
         "gpu_available": cuda_ok,
@@ -808,18 +1018,20 @@ def get_status():
         "supported_formats": ["mp3", "wav"],
         "engines": {
             "spanish": "Microsoft Edge Neural (Alta velocidad, 0 VRAM)",
-            "english": "Kokoro-82M (Acelerado por GPU CUDA)"
+            "english": "Kokoro-82M (Acelerado por GPU CUDA)",
+            "mimo": "Xiaomi MiMo v2.5 (Modo Director y Emociones en la Nube)" if mimo_active else "Inactivo (MIMO_API_KEY no detectada)"
         }
     }
 
 
 class TTSRequest(BaseModel):
     text: str
-    voice: Optional[str] = None          # Ej: "es-MX-JorgeNeural" o "af_heart"
+    voice: Optional[str] = None          # Ej: "es-MX-JorgeNeural", "af_heart" o "mimo-Chloe"
     speaker_wav: Optional[str] = None    # Compatibilidad previa ("es-MX-JorgeNeural.wav")
     language: Optional[str] = None       # "es" o "en"
     speed: Optional[float] = 0.95        # 0.95x = Ritmo pedagógico recomendado
     format: Optional[str] = "mp3"        # "mp3" (recomendado, ~10x más ligero) o "wav"
+    style_prompt: Optional[str] = None   # Instrucciones de tono/emoción para Xiaomi MiMo (Modo Director)
     # Compatibilidad previa para parámetros de XTTS (no requeridos pero tolerados)
     temperature: Optional[float] = None
     length_penalty: Optional[float] = None
@@ -827,6 +1039,7 @@ class TTSRequest(BaseModel):
     top_k: Optional[int] = None
     top_p: Optional[float] = None
     remove_ceceo: Optional[bool] = None
+
 
 
 @app.post("/api/tts")
@@ -861,7 +1074,28 @@ async def tts_generate(req: TTSRequest):
 
     media_type = "audio/mpeg" if audio_format == "mp3" else "audio/wav"
 
-    # 1. Caso Kokoro (Inglés, Español con Kokoro y Mezclas de Voces)
+    # 1. Caso Xiaomi MiMo (Cloud con Modo Director y Emociones)
+    is_mimo = (
+        voice_id in MIMO_VOICES
+        or voice_id.lower().startswith("mimo-")
+        or voice_id.lower().startswith("mimo_")
+        or voice_id.lower() in ["chloe", "mia", "milo", "dean", "mimo_default"]
+    )
+    if is_mimo:
+        try:
+            print(f"[TTS] Sintetizando con Xiaomi MiMo Cloud (Voz: {voice_id}, Speed: {speed}, Format: {audio_format}, Style: {req.style_prompt})...")
+            audio_bytes = await asyncio.to_thread(generate_mimo_audio, req.text, voice_id, speed, audio_format, req.style_prompt)
+            safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', voice_id)
+            return Response(
+                content=audio_bytes,
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename={safe_filename}_output.{audio_format}"},
+            )
+        except Exception as e:
+            print(f"[TTS Error MiMo]: {e}")
+            raise HTTPException(status_code=500, detail=f"Error en motor Xiaomi MiMo: {str(e)}")
+
+    # 2. Caso Kokoro (Inglés, Español con Kokoro y Mezclas de Voces)
     is_kokoro = (
         voice_id in KOKORO_VOICES
         or lang == "en"
@@ -883,7 +1117,7 @@ async def tts_generate(req: TTSRequest):
             print(f"[TTS Error Kokoro]: {e}")
             raise HTTPException(status_code=500, detail=f"Error en motor Kokoro: {str(e)}")
 
-    # 2. Caso Edge Neural (Español u otras voces Microsoft)
+    # 3. Caso Edge Neural (Español u otras voces Microsoft)
     try:
         print(f"[TTS] Sintetizando con Edge Neural (Voz: {voice_id}, Speed: {speed}, Format: {audio_format})...")
         audio_bytes = await generate_edge_tts_audio(req.text, voice_id, speed, audio_format)

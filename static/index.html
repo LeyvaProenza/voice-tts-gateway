@@ -33,6 +33,10 @@
                     <i class="fa-solid fa-microchip"></i>
                     <span>Kokoro GPU (EN)</span>
                 </div>
+                <div class="engine-badge badge-mimo" id="mimo-badge">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Xiaomi MiMo (Cloud)</span>
+                </div>
             </div>
         </header>
 
@@ -96,6 +100,22 @@
                         </div>
                     </div>
 
+                    <!-- Modo Director (Xiaomi MiMo - Control por Lenguaje Natural) -->
+                    <div id="director-mode-container" class="form-group director-group" style="display: none;">
+                        <div class="director-header">
+                            <label for="style-prompt-input">
+                                <i class="fa-solid fa-clapperboard"></i> <span>Modo Director (Instrucción de emoción o tono):</span>
+                            </label>
+                            <div class="director-presets">
+                                <button type="button" class="btn-director-preset" data-style="Tono alegre, entusiasta y motivador">Alegre</button>
+                                <button type="button" class="btn-director-preset" data-style="Tono pausado, calmado y pedagógico">Calmado</button>
+                                <button type="button" class="btn-director-preset" data-style="Tono documental, sobrio y formal">Documental</button>
+                                <button type="button" class="btn-director-preset" data-style="Habla susurrando con voz suave y confidencial">Susurro</button>
+                            </div>
+                        </div>
+                        <input type="text" id="style-prompt-input" placeholder="Ej: Habla con tono alegre y entusiasmado, transmitiendo motivación..." />
+                    </div>
+
                     <!-- Editor de Guion -->
                     <div class="form-group editor-group">
                         <div class="editor-header">
@@ -103,6 +123,15 @@
                             <div class="editor-tools">
                                 <button type="button" class="btn-tool" id="btn-insert-pause" title="Inserta una pausa breve para separar ideas o diapositivas">
                                     <i class="fa-solid fa-pause"></i> [pausa]
+                                </button>
+                                <button type="button" class="btn-tool btn-tool-mimo" id="btn-tag-laughter" title="Insertar risa en audio (Xiaomi MiMo)" style="display: none;">
+                                    <i class="fa-solid fa-face-laugh"></i> [laughter]
+                                </button>
+                                <button type="button" class="btn-tool btn-tool-mimo" id="btn-tag-sigh" title="Insertar suspiro en audio (Xiaomi MiMo)" style="display: none;">
+                                    <i class="fa-solid fa-wind"></i> [sigh]
+                                </button>
+                                <button type="button" class="btn-tool btn-tool-mimo" id="btn-tag-whisper" title="Insertar susurro en audio (Xiaomi MiMo)" style="display: none;">
+                                    <i class="fa-solid fa-comment-dots"></i> [whisper]
                                 </button>
                                 <button type="button" class="btn-tool" id="btn-sample-text" title="Cargar guion educativo de ejemplo">
                                     <i class="fa-solid fa-file-lines"></i> Ejemplo
@@ -115,7 +144,7 @@
                         <textarea id="script-text" rows="5" placeholder="Escribe o pega aquí el guion educativo..."></textarea>
                         <div class="editor-footer">
                             <span id="char-counter" class="text-counter">0 caracteres | ~0 seg estimadas</span>
-                            <span class="format-tip"><i class="fa-solid fa-circle-info"></i> Usa <code>[pausa]</code> para dar respiros naturales entre conceptos.</span>
+                            <span class="format-tip"><i class="fa-solid fa-circle-info"></i> Usa <code>[pausa]</code> para respiros, o etiquetas como <code>[laughter]</code> con Xiaomi MiMo.</span>
                         </div>
                     </div>
 
@@ -195,9 +224,19 @@
   "format": "mp3"
 }</pre>
                             </div>
+                            <div>
+                                <label class="code-label">Ejemplo con Xiaomi MiMo (Modo Director + Emociones):</label>
+                                <pre class="code-block">{
+  "text": "¡Extraordinario trabajo! [laughter] Lo lograste a la primera.",
+  "voice": "mimo-Chloe",
+  "style_prompt": "Tono entusiasta, alegre y motivador",
+  "speed": 0.95,
+  "format": "mp3"
+}</pre>
+                            </div>
                         </div>
                         <p class="api-note">
-                            <strong>Respuesta:</strong> El endpoint devuelve el archivo <code>audio/mpeg</code> (MP3 192 kbps por defecto) o <code>audio/wav</code> binario directamente con código HTTP 200. Admite cualquier mezcla de voces separadas por coma (ej. <code>af_bella,af_sarah</code>). Consulta <strong>API_DOCUMENTATION.md</strong> para ver ejemplos en Python, PowerShell, JavaScript y cURL.
+                            <strong>Respuesta:</strong> El endpoint devuelve el archivo <code>audio/mpeg</code> (MP3 192 kbps por defecto) o <code>audio/wav</code> binario directamente con código HTTP 200. Admite voces Edge Neural, mezclas Kokoro (ej. <code>af_bella,af_sarah</code>) y voces Xiaomi MiMo (ej. <code>mimo-Chloe</code>) con <code>style_prompt</code>. Consulta <strong>API_DOCUMENTATION.md</strong> para detalles completos.
                         </p>
                     </div>
                 </details>

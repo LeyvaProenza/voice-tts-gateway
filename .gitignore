@@ -1,5 +1,15 @@
+# Environment variables & secrets
+.env
+.env.*
+*.env
+
+# Scratch files
+scratch_*
+
+
 # Python virtual environment
 .venv/
+
 venv/
 env/
 ENV/
