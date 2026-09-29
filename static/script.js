@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSpeed = 0.95;
     let currentFormat = 'mp3';
     let currentAudioUrl = null;
+    let currentInputMode = 'text'; // 'text' o 'subtitle'
+    let currentSubMode = 'synced';  // 'synced' o 'continuous'
 
-    // DOM Elements
+    // DOM Elements - Studio Base
     const langTabs = document.querySelectorAll('.lang-tab');
     const voiceSelect = document.getElementById('voice-select');
     const voiceDesc = document.getElementById('voice-desc');
@@ -38,9 +40,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnTagWhisper = document.getElementById('btn-tag-whisper');
     const directorPresets = document.querySelectorAll('.btn-director-preset');
 
+    // DOM Elements - Subtitle Mode
+    const tabModeText = document.getElementById('tab-mode-text');
+    const tabModeSubtitle = document.getElementById('tab-mode-subtitle');
+    const textEditorContainer = document.getElementById('text-editor-container');
+    const subtitleEditorContainer = document.getElementById('subtitle-editor-container');
+    const subtitleDropzone = document.getElementById('subtitle-dropzone');
+    const btnBrowseSubtitle = document.getElementById('btn-browse-subtitle');
+    const subtitleFileInput = document.getElementById('subtitle-file-input');
+    const subtitleText = document.getElementById('subtitle-text');
+    const subtitleCounter = document.getElementById('subtitle-counter');
+    const btnSampleSubtitle = document.getElementById('btn-sample-subtitle');
+    const btnClearSubtitle = document.getElementById('btn-clear-subtitle');
+    const btnSubModes = document.querySelectorAll('.btn-sub-mode');
+
     const SAMPLES = {
         es: "Buenos días a todos. En esta lección aprenderemos los conceptos fundamentales de la investigación científica. [pausa] Es indispensable estructurar una pregunta clara y valorar rigurosamente la evidencia metodológica.",
         en: "Welcome to this educational session. Today, we will explore the fundamental principles of artificial intelligence and science. [pausa] Please follow each step carefully before starting the interactive exercises."
+    };
+
+    const SUBTITLE_SAMPLES = {
+        es: `1\n00:00:00,500 --> 00:00:03,500\nBienvenidos a esta lección interactiva sobre inteligencia artificial.\n\n2\n00:00:04,200 --> 00:00:07,800\nHoy aprenderemos cómo convertir subtítulos en una pista de voz sincronizada.\n\n3\n00:00:08,500 --> 00:00:11,500\n¡El audio respetará cada segundo y marca de tiempo del video!`,
+        en: `1\n00:00:00.500 --> 00:00:03.500\nWelcome to this educational video on modern artificial intelligence.\n\n2\n00:00:04.200 --> 00:00:07.800\nToday we will demonstrate real-time subtitle-to-speech synchronization.\n\n3\n00:00:08.500 --> 00:00:11.500\nEvery segment aligns perfectly with the video timestamps!`
     };
 
     // 1. Inicialización
@@ -192,8 +213,150 @@ document.addEventListener('DOMContentLoaded', () => {
         charCounter.textContent = `${chars} caracteres | ${words} palabras | ~${estSeconds}s estimadas`;
     }
 
-    // 5. Generar Narración
+    // 4.1. Estadísticas de Subtítulos (.SRT / .VTT)
+    function updateSubtitleStats() {
+        if (!subtitleText || !subtitleCounter) return;
+        const content = subtitleText.value.trim();
+        if (!content) {
+            subtitleCounter.textContent = '0 subtítulos detectados | ~0s de duración total';
+            return;
+        }
+
+        // Buscar marcas de tiempo 00:00:00,000 --> 00:00:00,000
+        const timePat = /(?:(?:(\d{1,2}):)?(\d{2}):(\d{2})[,.](\d{3}))\s*-->\s*(?:(?:(\d{1,2}):)?(\d{2}):(\d{2})[,.](\d{3}))/g;
+        let count = 0;
+        let lastEndSec = 0;
+        let m;
+
+        while ((m = timePat.exec(content)) !== null) {
+            count++;
+            const h2 = m[5] ? parseInt(m[5], 10) : 0;
+            const m2 = parseInt(m[6], 10);
+            const s2 = parseInt(m[7], 10);
+            const endSec = h2 * 3600 + m2 * 60 + s2;
+            if (endSec > lastEndSec) lastEndSec = endSec;
+        }
+
+        if (count > 0) {
+            const mins = Math.floor(lastEndSec / 60);
+            const secs = lastEndSec % 60;
+            const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+            subtitleCounter.textContent = `${count} subtítulos detectados | ~${timeStr} de duración total de video`;
+        } else {
+            subtitleCounter.textContent = 'No se detectaron marcas de tiempo válidas (formato 00:00:01,000 --> 00:00:04,000)';
+        }
+    }
+
+    function handleSubtitleFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            subtitleText.value = e.target.result;
+            updateSubtitleStats();
+            showStatus(`Archivo "${file.name}" cargado correctamente`, 'success');
+        };
+        reader.onerror = () => {
+            showStatus('Error al leer el archivo de subtítulos', 'error');
+        };
+        reader.readAsText(file);
+    }
+
+    // 5. Generar Narración o Doblaje de Subtítulos
     async function handleGenerate() {
+        const voiceId = voiceSelect.value;
+        if (!voiceId) {
+            showStatus('Selecciona una voz para continuar.', 'warning');
+            return;
+        }
+
+        const startTime = Date.now();
+        const isSubtitle = (currentInputMode === 'subtitle');
+
+        if (isSubtitle) {
+            const subContent = subtitleText.value.trim();
+            if (!subContent) {
+                showStatus('Por favor, ingresa o arrastra un archivo de subtítulos antes de generar.', 'warning');
+                subtitleText.focus();
+                return;
+            }
+
+            btnGenerate.disabled = true;
+            btnGenerate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Alineando subtítulos y voz...</span>`;
+            const modeDesc = (currentSubMode === 'synced') ? 'doblaje sincronizado con marcas de tiempo' : 'narración continua';
+            showStatus(`Procesando ${modeDesc}... (esto puede tardar unos segundos)`, 'loading');
+
+            try {
+                const payload = {
+                    subtitle_text: subContent,
+                    voice: voiceId,
+                    language: currentLang,
+                    speed: currentSpeed,
+                    mode: currentSubMode,
+                    format: currentFormat
+                };
+
+                if (stylePromptInput && stylePromptInput.value.trim()) {
+                    payload.style_prompt = stylePromptInput.value.trim();
+                }
+
+                const response = await fetch('/api/tts/subtitle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    let errMsg = 'Error al procesar subtítulos';
+                    try {
+                        const errData = await response.json();
+                        errMsg = errData.detail || errMsg;
+                    } catch (e) {}
+                    throw new Error(errMsg);
+                }
+
+                const subCountHeader = response.headers.get('X-Subtitle-Count');
+                const audioBlob = await response.blob();
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+                currentAudioUrl = URL.createObjectURL(audioBlob);
+
+                audioPlayer.src = currentAudioUrl;
+                audioPlayer.load();
+                audioPlayer.play().catch(() => {});
+
+                const voices = catalog[currentLang] || [];
+                const selectedVoice = voices.find(v => v.id === voiceId);
+                const voiceName = selectedVoice ? selectedVoice.name : voiceId;
+
+                const subModeLabel = (currentSubMode === 'synced') ? 'Doblaje Sincronizado' : 'Audiolibro Corrido';
+                audioTitle.textContent = `${subModeLabel}: ${voiceName}`;
+                const sizeKb = (audioBlob.size / 1024).toFixed(0);
+                const fmtUpper = currentFormat.toUpperCase();
+                const countStr = subCountHeader ? `${subCountHeader} frases • ` : '';
+                audioMeta.textContent = `${fmtUpper} • ${sizeKb} KB • ${countStr}Generado en ${elapsed}s`;
+
+                const dateStr = new Date().toISOString().slice(0, 10);
+                btnDownloadAudio.href = currentAudioUrl;
+                btnDownloadAudio.download = `subtitles_${currentSubMode}_${voiceId}_${dateStr}.${currentFormat}`;
+                if (downloadExt) downloadExt.textContent = fmtUpper;
+
+                audioCard.style.display = 'block';
+                audioCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                showStatus(`¡Audio de subtítulos generado con éxito en ${elapsed}s!`, 'success');
+
+            } catch (error) {
+                console.error(error);
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                btnGenerate.disabled = false;
+                btnGenerate.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generar Narración</span>`;
+            }
+            return;
+        }
+
+        // Modo Convencional (Texto Libre)
         const text = scriptText.value.trim();
         if (!text) {
             showStatus('Por favor, escribe un guion antes de generar.', 'warning');
@@ -201,18 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const voiceId = voiceSelect.value;
-        if (!voiceId) {
-            showStatus('Selecciona una voz para continuar.', 'warning');
-            return;
-        }
-
         // UI Loading
         btnGenerate.disabled = true;
         btnGenerate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Sintetizando lección...</span>`;
         showStatus('Procesando audio de alta fidelidad...', 'loading');
-
-        const startTime = Date.now();
 
         try {
             const payload = {
@@ -314,8 +469,103 @@ document.addEventListener('DOMContentLoaded', () => {
                 scriptText.value = SAMPLES[currentLang];
                 updateTextStats();
             }
+
+            // Actualizar muestra de subtítulos si está vacía
+            if (!subtitleText.value.trim() || subtitleText.value.trim() === SUBTITLE_SAMPLES.es || subtitleText.value.trim() === SUBTITLE_SAMPLES.en) {
+                subtitleText.value = SUBTITLE_SAMPLES[currentLang];
+                updateSubtitleStats();
+            }
         });
     });
+
+    // Control de Modo de Entrada (Texto vs Subtítulos)
+    if (tabModeText && tabModeSubtitle) {
+        tabModeText.addEventListener('click', () => {
+            tabModeText.classList.add('active');
+            tabModeSubtitle.classList.remove('active');
+            textEditorContainer.style.display = 'block';
+            subtitleEditorContainer.style.display = 'none';
+            currentInputMode = 'text';
+            btnGenerate.querySelector('span').textContent = 'Generar Narración';
+        });
+
+        tabModeSubtitle.addEventListener('click', () => {
+            tabModeSubtitle.classList.add('active');
+            tabModeText.classList.remove('active');
+            textEditorContainer.style.display = 'none';
+            subtitleEditorContainer.style.display = 'block';
+            currentInputMode = 'subtitle';
+            btnGenerate.querySelector('span').textContent = 'Generar Audio de Subtítulos';
+
+            if (!subtitleText.value.trim()) {
+                subtitleText.value = SUBTITLE_SAMPLES[currentLang];
+                updateSubtitleStats();
+            }
+        });
+    }
+
+    // Control de Modo de Subtítulos (Sincronizado vs Continuo)
+    btnSubModes.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btnSubModes.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSubMode = btn.dataset.submode || 'synced';
+        });
+    });
+
+    // Dropzone de Subtítulos
+    if (subtitleDropzone && subtitleFileInput) {
+        subtitleDropzone.addEventListener('click', (e) => {
+            if (e.target.id === 'btn-browse-subtitle' || e.target.closest('#btn-browse-subtitle')) {
+                subtitleFileInput.click();
+            } else if (e.target === subtitleDropzone || e.target.closest('.dropzone-icon') || e.target.closest('.dropzone-text')) {
+                subtitleFileInput.click();
+            }
+        });
+
+        subtitleDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            subtitleDropzone.classList.add('dragover');
+        });
+
+        subtitleDropzone.addEventListener('dragleave', () => {
+            subtitleDropzone.classList.remove('dragover');
+        });
+
+        subtitleDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            subtitleDropzone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                handleSubtitleFile(files[0]);
+            }
+        });
+
+        subtitleFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleSubtitleFile(e.target.files[0]);
+            }
+        });
+    }
+
+    if (btnSampleSubtitle) {
+        btnSampleSubtitle.addEventListener('click', () => {
+            subtitleText.value = SUBTITLE_SAMPLES[currentLang];
+            updateSubtitleStats();
+        });
+    }
+
+    if (btnClearSubtitle) {
+        btnClearSubtitle.addEventListener('click', () => {
+            subtitleText.value = '';
+            updateSubtitleStats();
+            subtitleText.focus();
+        });
+    }
+
+    if (subtitleText) {
+        subtitleText.addEventListener('input', updateSubtitleStats);
+    }
 
     voiceSelect.addEventListener('change', updateVoiceDescription);
 
@@ -382,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnGenerate.addEventListener('click', handleGenerate);
 
     // Permitir Ctrl+Enter para generar rápidamente
-    scriptText.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             handleGenerate();

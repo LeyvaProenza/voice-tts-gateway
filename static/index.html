@@ -62,7 +62,7 @@
                             <button type="button" class="lang-tab" data-lang="en">
                                 <span class="flag">🇺🇸 / 🇬🇧</span>
                                 <span class="tab-title">English</span>
-                                <span class="tab-badge">Kokoro AI (GPU)</span>
+                                <span class="tab-badge">Kokoro GPU + MiMo</span>
                             </button>
                         </div>
                     </div>
@@ -116,8 +116,21 @@
                         <input type="text" id="style-prompt-input" placeholder="Ej: Habla con tono alegre y entusiasmado, transmitiendo motivación..." />
                     </div>
 
-                    <!-- Editor de Guion -->
-                    <div class="form-group editor-group">
+                    <!-- Selector de Modo de Entrada (Texto Libre vs Subtítulos) -->
+                    <div class="input-mode-container">
+                        <div class="input-mode-tabs">
+                            <button type="button" class="btn-mode-tab active" id="tab-mode-text">
+                                <i class="fa-solid fa-align-left"></i> <span>Guion de Texto</span>
+                            </button>
+                            <button type="button" class="btn-mode-tab" id="tab-mode-subtitle">
+                                <i class="fa-solid fa-closed-captioning"></i> <span>Subtítulos (.SRT / .VTT)</span>
+                                <span class="mode-badge">Nuevo</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel 1: Editor de Guion Convencional -->
+                    <div id="text-editor-container" class="form-group editor-group">
                         <div class="editor-header">
                             <label for="script-text">Guion de la Narración:</label>
                             <div class="editor-tools">
@@ -145,6 +158,52 @@
                         <div class="editor-footer">
                             <span id="char-counter" class="text-counter">0 caracteres | ~0 seg estimadas</span>
                             <span class="format-tip"><i class="fa-solid fa-circle-info"></i> Usa <code>[pausa]</code> para respiros, o etiquetas como <code>[laughter]</code> con Xiaomi MiMo.</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: Procesador de Subtítulos (.SRT / .VTT) -->
+                    <div id="subtitle-editor-container" class="form-group subtitle-group" style="display: none;">
+                        <div class="subtitle-config-bar">
+                            <div class="subtitle-mode-selector">
+                                <span class="group-label">Modo de Conversión:</span>
+                                <div class="sub-mode-pills">
+                                    <button type="button" class="btn-sub-mode active" data-submode="synced" title="Inserta silencios y time-stretch para calzar exactamente con el video">
+                                        <i class="fa-solid fa-stopwatch"></i> <span>Sincronizado (Doblaje de Video)</span>
+                                    </button>
+                                    <button type="button" class="btn-sub-mode" data-submode="continuous" title="Extrae el texto y genera una narración corrida tipo audiolibro">
+                                        <i class="fa-solid fa-book-open"></i> <span>Narración Continua (Audiolibro)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropzone para Archivo SRT/VTT -->
+                        <div id="subtitle-dropzone" class="subtitle-dropzone">
+                            <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                            <div class="dropzone-text">
+                                <strong>Arrastra y suelta tu archivo de subtítulos (.srt o .vtt) aquí</strong>
+                                <span>o <button type="button" id="btn-browse-subtitle" class="btn-link">haz clic para examinar</button></span>
+                            </div>
+                            <input type="file" id="subtitle-file-input" accept=".srt,.vtt,text/plain" style="display: none;">
+                        </div>
+
+                        <!-- Editor / Visor de contenido SRT -->
+                        <div class="editor-header subtitle-text-header">
+                            <label for="subtitle-text">Contenido del Subtítulo (o pégalo directamente):</label>
+                            <div class="editor-tools">
+                                <button type="button" class="btn-tool" id="btn-sample-subtitle" title="Cargar subtítulo .SRT de ejemplo">
+                                    <i class="fa-solid fa-file-code"></i> SRT de Ejemplo
+                                </button>
+                                <button type="button" class="btn-tool" id="btn-clear-subtitle" title="Limpiar subtítulos">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="subtitle-text" rows="5" placeholder="1&#10;00:00:01,000 --> 00:00:04,500&#10;Texto del primer subtítulo...&#10;&#10;2&#10;00:00:05,200 --> 00:00:08,000&#10;Texto del segundo subtítulo..."></textarea>
+                        
+                        <div class="editor-footer">
+                            <span id="subtitle-counter" class="text-counter">0 subtítulos detectados | ~0s de duración total</span>
+                            <span class="format-tip"><i class="fa-solid fa-circle-check"></i> Formatos soportados: SubRip (.SRT) y WebVTT (.VTT).</span>
                         </div>
                     </div>
 
@@ -235,8 +294,36 @@
 }</pre>
                             </div>
                         </div>
+                        <div class="api-endpoint-box" style="margin-top: 1.5rem;">
+                            <span class="http-badge" style="background: #10b981;">POST</span>
+                            <code>http://localhost:8000/api/tts/subtitle</code>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">(Conversión de Subtítulos a Audio)</span>
+                        </div>
+
+                        <div class="api-code-grid">
+                            <div>
+                                <label class="code-label">Subtítulo Sincronizado (Doblaje con Timestamps):</label>
+                                <pre class="code-block">{
+  "subtitle_text": "1\n00:00:01,000 --> 00:00:04,000\nHola a todos.\n\n2\n00:00:05,000 --> 00:00:08,000\nBienvenidos al curso.",
+  "voice": "es-MX-JorgeNeural",
+  "mode": "synced",
+  "speed": 1.0,
+  "format": "mp3"
+}</pre>
+                            </div>
+                            <div>
+                                <label class="code-label">Narración Corrida (Audiolibro continuo):</label>
+                                <pre class="code-block">{
+  "subtitle_text": "1\n00:00:01,000 --> 00:00:04,000\nPrimera frase.\n\n2\n00:00:05,000 --> 00:00:08,000\nSegunda frase.",
+  "voice": "es-MX-DaliaNeural",
+  "mode": "continuous",
+  "speed": 0.95,
+  "format": "mp3"
+}</pre>
+                            </div>
+                        </div>
                         <p class="api-note">
-                            <strong>Respuesta:</strong> El endpoint devuelve el archivo <code>audio/mpeg</code> (MP3 192 kbps por defecto) o <code>audio/wav</code> binario directamente con código HTTP 200. Admite voces Edge Neural, mezclas Kokoro (ej. <code>af_bella,af_sarah</code>) y voces Xiaomi MiMo (ej. <code>mimo-Chloe</code>) con <code>style_prompt</code>. Consulta <strong>API_DOCUMENTATION.md</strong> para detalles completos.
+                            <strong>Subida directa de archivos (.srt / .vtt):</strong> También puedes enviar un archivo multipart a <code>POST /api/tts/subtitle/file</code> con el campo <code>file</code> y los parámetros opcionales <code>voice</code>, <code>mode</code> (<code>synced</code> o <code>continuous</code>) y <code>format</code>.
                         </p>
                     </div>
                 </details>

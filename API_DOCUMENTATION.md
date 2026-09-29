@@ -21,7 +21,7 @@ El servidor cuenta con enrutamiento inteligente automático:
 | :--- | :--- | :--- | :--- | :--- |
 | **Español** | Microsoft Edge Neural | `es-MX-JorgeNeural` (Masculino)<br>`es-MX-DaliaNeural` (Femenino) | 0 MB VRAM | Narración educativa, clases y cursos en español con dicción impecable. |
 | **Inglés** | **Kokoro-82M AI** | `af_heart` (Insignia Kokoro)<br>`af_bella,af_sarah` (Mezcla Educativa)<br>`am_adam` (Docente US) | ~400 MB VRAM (CUDA) | Locución en inglés de calidad cinematográfica, soporte nativo de **Voice Blending**. |
-| **Multilingüe (ES / EN)** | **Xiaomi MiMo v2.5** | `mimo-Chloe` (Femenino)<br>`mimo-Mia` (Femenino)<br>`mimo-Milo` (Masculino)<br>`mimo-Dean` (Masculino) | 0 MB VRAM (Cloud API) | Expresividad extrema, control por lenguaje natural (**Modo Director**) y efectos de sonido (**Audio Tags**: `[laughter]`, `[sigh]`, `[whisper]`). |
+| **Inglés (Expresivo)** | **Xiaomi MiMo v2.5** | `mimo-Chloe` (Femenino)<br>`mimo-Mia` (Femenino)<br>`mimo-Milo` (Masculino)<br>`mimo-Dean` (Masculino) | 0 MB VRAM (Cloud API) | Locución en inglés con expresividad extrema, control por lenguaje natural (**Modo Director**) y efectos de sonido (**Audio Tags**: `[laughter]`, `[sigh]`, `[whisper]`). *(Nota: Entrenado nativamente para inglés y chino)*. |
 
 ---
 
@@ -245,6 +245,73 @@ curl -X POST http://localhost:8000/api/tts \
      -H "Content-Type: application/json" \
      -d "{\"text\":\"Hola mundo educativo. [pausa] Todo funcionando.\", \"voice\":\"es-MX-JorgeNeural\", \"format\":\"mp3\"}" \
      --output prueba_es.mp3
+---
+
+## 🎬 4. Conversión de Subtítulos (.SRT / .VTT) a Audio
+
+Voice-TTS permite procesar archivos o textos de subtítulos (`.srt` y `.vtt`) para transformarlos en pistas de audio listas para producción.
+
+### Modos Disponibles:
+1. **`mode: "synced"` (Doblaje Sincronizado con Video)**:
+   - Lee cada bloque de tiempo (`00:00:01,000 --> 00:00:04,500`).
+   - Inserta silencios en los espacios vacíos para mantener los tiempos del video.
+   - Aplica aceleración de habla (*time-stretch*) si la duración de la locución excede la ventana permitida, evitando solapamientos destructivos.
+2. **`mode: "continuous"` (Audiolibro / Narración Continua)**:
+   - Elimina marcas de tiempo e índices.
+   - Concatena las frases con pausas naturales y genera una narración corrida fluida.
+
+---
+
+### Endpoints:
+
+#### A. `POST /api/tts/subtitle` (Formato JSON)
+
+**Parámetros:**
+* `subtitle_text` (string, obligatorio): Texto con formato SRT o WebVTT.
+* `voice` (string, opcional): Voz del catálogo (`es-MX-JorgeNeural`, `af_bella,af_sarah`, etc.).
+* `mode` (string, opcional): `"synced"` (por omisión) o `"continuous"`.
+* `speed` (float, opcional): Velocidad base (por omisión `1.0`).
+* `format` (string, opcional): `"mp3"` (por omisión) o `"wav"`.
+* `max_speed_factor` (float, opcional): Límite de aceleración preventiva en modo sincronizado (por omisión `1.35`).
+
+**Ejemplo en Python:**
+```python
+import requests
+
+url = "http://localhost:8000/api/tts/subtitle"
+payload = {
+    "subtitle_text": """1
+00:00:01,000 --> 00:00:04,000
+Hola a todos los estudiantes.
+
+2
+00:00:05,200 --> 00:00:08,500
+Bienvenidos a esta lección de programación.""",
+    "voice": "es-MX-JorgeNeural",
+    "mode": "synced",
+    "speed": 1.0,
+    "format": "mp3"
+}
+
+resp = requests.post(url, json=payload)
+if resp.status_code == 200:
+    with open("doblaje_sincronizado.mp3", "wb") as f:
+        f.write(resp.content)
+    print("¡Audio sincronizado guardado exitosamente!")
+```
+
+#### B. `POST /api/tts/subtitle/file` (Subida de Archivo Multipart)
+
+Permite subir directamente un archivo `.srt` o `.vtt` desde el disco.
+
+**Ejemplo con cURL:**
+```bash
+curl -X POST http://localhost:8000/api/tts/subtitle/file \
+     -F "file=@leccion.srt" \
+     -F "voice=es-MX-JorgeNeural" \
+     -F "mode=synced" \
+     -F "format=mp3" \
+     --output audio_doblado.mp3
 ```
 
 ---

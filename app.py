@@ -1,38 +1,48 @@
+"""
+Voice-TTS Gateway - Servidor Local de Locución y Síntesis de Voz Educativa.
+Integra:
+- Microsoft Edge Neural TTS (Español neutro / regional, alta velocidad, 0 VRAM)
+- Kokoro-82M AI con aceleración GPU CUDA (Inglés pedagógico, Voice Blending, Español)
+- Xiaomi MiMo Speech Synthesis v2.5 (Modo Director y Audio Tags en la Nube)
+- Motor de Sincronización y Doblaje de Subtítulos (.SRT / .VTT)
+"""
+
 import os
-import sys
-import io
 import re
 import asyncio
-from typing import Optional, Dict, Any, List
-import requests
-import edge_tts
-from pydub import AudioSegment
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from typing import Optional
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
-from pydantic import BaseModel
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
-app = FastAPI(
-    title="Voice-TTS Educational Gateway",
-    description="Servidor local de narración pedagógica y síntesis de voz (Edge-TTS para Español + Kokoro-82M con GPU para Inglés).",
-    version="3.0.0",
+# Re-exportaciones e importaciones de módulos desacoplados
+from catalog import VOICES_CATALOG, KOKORO_VOICES, MIMO_VOICES
+from engines.edge_engine import generate_edge_tts_audio
+from engines.kokoro_engine import (
+    generate_kokoro_audio,
+    get_kokoro_pipeline,
+    _kokoro_lock,
+    _kokoro_pipelines,
+    _kokoro_init_lock,
+)
+from engines.mimo_engine import generate_mimo_audio, get_mimo_api_key
+from subtitles import (
+    parse_subtitles,
+    synthesize_text_segment,
+    generate_synced_subtitle_audio,
+    generate_continuous_subtitle_audio,
+    MAX_SUBTITLE_FILE_SIZE,
 )
 
-# Enable CORS for external agents and frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Directorios de trabajo
 WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(WORKSPACE_DIR, "output")
 SPEAKERS_DIR = os.path.join(WORKSPACE_DIR, "speakers")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(SPEAKERS_DIR, exist_ok=True)
+
 
 def load_env():
     """Carga variables del archivo .env si existen."""
@@ -48,944 +58,25 @@ def load_env():
                     if k and k not in os.environ:
                         os.environ[k] = v
 
+
 load_env()
 
-# =========================================================================
-#  Catálogo Curado de Voces Educativas
-# =========================================================================
+# Inicialización de FastAPI
+app = FastAPI(
+    title="Voice-TTS Educational Gateway",
+    description="Servidor local de narración pedagógica y síntesis de voz (Edge-TTS para Español + Kokoro-82M con GPU para Inglés + MiMo v2.5).",
+    version="3.1.0",
+)
 
-VOICES_CATALOG: Dict[str, List[Dict[str, Any]]] = {
-    "es": [
-        # --- XIAOMI MIMO V2.5 (MODO DIRECTOR Y EMOCIONES EN LA NUBE) ---
-        {
-            "id": "mimo-Chloe",
-            "name": "Chloe (Xiaomi MiMo)",
-            "gender": "Femenino",
-            "accent": "Expresiva (Multilingüe)",
-            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
-            "recommended": True,
-            "description": "Voz IA generativa con control de emociones (Modo Director) y etiquetas como [laughter] o [sigh]. Excelente dicción en español.",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Mia",
-            "name": "Mia (Xiaomi MiMo)",
-            "gender": "Femenino",
-            "accent": "Cálida y Suave",
-            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
-            "recommended": False,
-            "description": "Tono empático y sereno, ideal para lecciones conversacionales y audiolibros.",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Milo",
-            "name": "Milo (Xiaomi MiMo)",
-            "gender": "Masculino",
-            "accent": "Dinámico",
-            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
-            "recommended": False,
-            "description": "Voz masculina joven y enérgica para explicaciones ágiles y didácticas.",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Dean",
-            "name": "Dean (Xiaomi MiMo)",
-            "gender": "Masculino",
-            "accent": "Documental / Formal",
-            "category": "⭐ Xiaomi MiMo (Modo Director + Emociones)",
-            "recommended": False,
-            "description": "Voz masculina profunda y autorizada para presentaciones magistrales.",
-            "engine": "mimo"
-        },
-        # --- RECOMENDADAS PARA DOCENCIA (MICROSOFT EDGE NEURAL) ---
-        {
-            "id": "es-MX-JorgeNeural",
-            "name": "Jorge (Recomendado)",
-            "gender": "Masculino",
-            "accent": "México",
-            "category": "⭐ Recomendadas Docencia (Edge Neural)",
-            "recommended": True,
-            "description": "Tono sereno, cálido y explicativo. Máxima naturalidad y dicción impecable para docencia y tutoriales.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-MX-DaliaNeural",
-            "name": "Dalia (Recomendada)",
-            "gender": "Femenino",
-            "accent": "México",
-            "category": "⭐ Recomendadas Docencia (Edge Neural)",
-            "recommended": True,
-            "description": "Voz clara, empática y natural, excelente para exposiciones y material formativo.",
-            "engine": "edge-tts"
-        },
-        # --- KOKORO AI ESPAÑOL Y MEZCLAS (EXPERIMENTAL EN GPU) ---
-        {
-            "id": "ef_dora,af_sarah",
-            "name": "Dora & Sarah (Mezcla Educativa)",
-            "gender": "Femenino",
-            "accent": "Hispano-American Blend",
-            "category": "Kokoro AI Español (Experimental GPU)",
-            "recommended": False,
-            "description": "Pronunciación en español de Dora con la cadencia de Sarah. Procesado en GPU.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "ef_dora,af_bella",
-            "name": "Dora & Bella (Mezcla Dinámica)",
-            "gender": "Femenino",
-            "accent": "Hispano-American Blend",
-            "category": "Kokoro AI Español (Experimental GPU)",
-            "recommended": False,
-            "description": "Dicción viva con consonantes claras para explicaciones paso a paso.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "ef_dora,em_alex",
-            "name": "Dora & Alex (Mezcla Dual)",
-            "gender": "Híbrido",
-            "accent": "Hispano Blend",
-            "category": "Kokoro AI Español (Experimental GPU)",
-            "recommended": False,
-            "description": "Fusión de tonos femenino y masculino nativos en español.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "ef_dora",
-            "name": "Dora (Kokoro GPU)",
-            "gender": "Femenino",
-            "accent": "Español",
-            "category": "Kokoro AI Español (Experimental GPU)",
-            "recommended": False,
-            "description": "Voz femenina nativa de Kokoro en español ejecutada en local en tu GPU.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "em_alex",
-            "name": "Alex (Kokoro GPU)",
-            "gender": "Masculino",
-            "accent": "Español",
-            "category": "Kokoro AI Español (Experimental GPU)",
-            "recommended": False,
-            "description": "Voz masculina nativa de Kokoro en español ejecutada en GPU.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "es-CO-GonzaloNeural",
-            "name": "Gonzalo",
-            "gender": "Masculino",
-            "accent": "Colombia",
-            "category": "Colombia (Edge Neural)",
-            "recommended": False,
-            "description": "Acento neutro y formal, ideal para lecturas académicas o científicas.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-CO-SalomeNeural",
-            "name": "Salomé",
-            "gender": "Femenino",
-            "accent": "Colombia",
-            "category": "Colombia (Edge Neural)",
-            "recommended": False,
-            "description": "Tono pausado y suave, muy adecuado para audiolibros educativos.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-PE-AlexNeural",
-            "name": "Alex",
-            "gender": "Masculino",
-            "accent": "Perú",
-            "category": "Perú (Edge Neural)",
-            "recommended": False,
-            "description": "Locución clara, pausada y con acento andino formal.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-PE-CamilaNeural",
-            "name": "Camila",
-            "gender": "Femenino",
-            "accent": "Perú",
-            "category": "Perú (Edge Neural)",
-            "recommended": False,
-            "description": "Tono empático, suave y de excelente articulación.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-AR-TomasNeural",
-            "name": "Tomás",
-            "gender": "Masculino",
-            "accent": "Argentina",
-            "category": "Argentina (Edge Neural)",
-            "recommended": False,
-            "description": "Locución segura, moderna y profesional.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-AR-ElenaNeural",
-            "name": "Elena",
-            "gender": "Femenino",
-            "accent": "Argentina",
-            "category": "Argentina (Edge Neural)",
-            "recommended": False,
-            "description": "Voz expresiva, viva y clara.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-CL-LorenzoNeural",
-            "name": "Lorenzo",
-            "gender": "Masculino",
-            "accent": "Chile",
-            "category": "Chile (Edge Neural)",
-            "recommended": False,
-            "description": "Locución sobria y formal.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-CL-CatalinaNeural",
-            "name": "Catalina",
-            "gender": "Femenino",
-            "accent": "Chile",
-            "category": "Chile (Edge Neural)",
-            "recommended": False,
-            "description": "Voz limpia, expresiva y didáctica.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-VE-SebastianNeural",
-            "name": "Sebastián",
-            "gender": "Masculino",
-            "accent": "Venezuela",
-            "category": "Venezuela (Edge Neural)",
-            "recommended": False,
-            "description": "Tono cálido, amigable y fluido.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-VE-PaolaNeural",
-            "name": "Paola",
-            "gender": "Femenino",
-            "accent": "Venezuela",
-            "category": "Venezuela (Edge Neural)",
-            "recommended": False,
-            "description": "Voz fresca, cercana y entusiasta.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-EC-LuisNeural",
-            "name": "Luis",
-            "gender": "Masculino",
-            "accent": "Ecuador",
-            "category": "Ecuador y Región Andina",
-            "recommended": False,
-            "description": "Dicción limpia y neutral.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-EC-AndreaNeural",
-            "name": "Andrea",
-            "gender": "Femenino",
-            "accent": "Ecuador",
-            "category": "Ecuador y Región Andina",
-            "recommended": False,
-            "description": "Tono educativo sereno y paciente.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-UY-MateoNeural",
-            "name": "Mateo",
-            "gender": "Masculino",
-            "accent": "Uruguay",
-            "category": "Uruguay (Edge Neural)",
-            "recommended": False,
-            "description": "Locución ríoplatense sobria y precisa.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-UY-ValentinaNeural",
-            "name": "Valentina",
-            "gender": "Femenino",
-            "accent": "Uruguay",
-            "category": "Uruguay (Edge Neural)",
-            "recommended": False,
-            "description": "Tono ameno, claro y reflexivo.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-CR-JuanNeural",
-            "name": "Juan",
-            "gender": "Masculino",
-            "accent": "Costa Rica",
-            "category": "Centroamérica y Caribe",
-            "recommended": False,
-            "description": "Acento centroamericano neutro y pausado.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-CR-MariaNeural",
-            "name": "María",
-            "gender": "Femenino",
-            "accent": "Costa Rica",
-            "category": "Centroamérica y Caribe",
-            "recommended": False,
-            "description": "Tono dulce, claro y didáctico.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-PR-VictorNeural",
-            "name": "Víctor",
-            "gender": "Masculino",
-            "accent": "Puerto Rico",
-            "category": "Centroamérica y Caribe",
-            "recommended": False,
-            "description": "Locución dinámica y articulada.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-PR-KarinaNeural",
-            "name": "Karina",
-            "gender": "Femenino",
-            "accent": "Puerto Rico",
-            "category": "Centroamérica y Caribe",
-            "recommended": False,
-            "description": "Voz alegre, profesional y expresiva.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-US-AlonsoNeural",
-            "name": "Alonso",
-            "gender": "Masculino",
-            "accent": "Latino Neutro (EE.UU.)",
-            "category": "Latino Neutro (EE.UU.)",
-            "recommended": False,
-            "description": "Locución dinámica y articulada para presentaciones corporativas.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-US-PalomaNeural",
-            "name": "Paloma",
-            "gender": "Femenino",
-            "accent": "Latino Neutro (EE.UU.)",
-            "category": "Latino Neutro (EE.UU.)",
-            "recommended": False,
-            "description": "Tono joven, fresco y claro.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-ES-AlvaroNeural",
-            "name": "Álvaro",
-            "gender": "Masculino",
-            "accent": "España",
-            "category": "Castellano (España)",
-            "recommended": False,
-            "description": "Acento castellano formal y bien articulado.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-ES-ElviraNeural",
-            "name": "Elvira",
-            "gender": "Femenino",
-            "accent": "España",
-            "category": "Castellano (España)",
-            "recommended": False,
-            "description": "Acento castellano clásico y sereno.",
-            "engine": "edge-tts"
-        },
-        {
-            "id": "es-ES-XimenaNeural",
-            "name": "Ximena",
-            "gender": "Femenino",
-            "accent": "España",
-            "category": "Castellano (España)",
-            "recommended": False,
-            "description": "Voz castellana juvenil y expresiva.",
-            "engine": "edge-tts"
-        },
-    ],
-    "en": [
-        # --- XIAOMI MIMO V2.5 (DIRECTOR MODE + EMOTIONS) ---
-        {
-            "id": "mimo-Chloe",
-            "name": "Chloe (Xiaomi MiMo)",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
-            "recommended": True,
-            "description": "Ultra-expressive AI voice with natural language Director Mode control and inline audio tags like [laughter] or [sigh].",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Mia",
-            "name": "Mia (Xiaomi MiMo)",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
-            "recommended": False,
-            "description": "Warm, engaging female voice for storytelling, podcasts, and conversational lessons.",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Milo",
-            "name": "Milo (Xiaomi MiMo)",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
-            "recommended": False,
-            "description": "Bright, energetic, and youthful male voice.",
-            "engine": "mimo"
-        },
-        {
-            "id": "mimo-Dean",
-            "name": "Dean (Xiaomi MiMo)",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "⭐ Xiaomi MiMo (Director Mode + Emotions)",
-            "recommended": False,
-            "description": "Authoritative, resonant, and documentary-style male voice.",
-            "engine": "mimo"
-        },
-        # --- MEZCLAS EDUCATIVAS (VOICE BLENDING) ---
-        {
-            "id": "af_bella,af_sarah",
-            "name": "Bella & Sarah (Mezcla Educativa)",
-            "gender": "Femenino",
-            "accent": "American Blend",
-            "category": "⭐ Mezclas Educativas (Blends)",
-            "recommended": True,
-            "description": "Mezcla estelar recomendada para e-learning: combina la claridad nítida de Bella con el ritmo cálido y pausado de Sarah.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_heart,af_nicole",
-            "name": "Heart & Nicole (Mezcla Didáctica)",
-            "gender": "Femenino",
-            "accent": "American Blend",
-            "category": "⭐ Mezclas Educativas (Blends)",
-            "recommended": False,
-            "description": "Fusión de calidez empática y articulación metódica para tutoriales paso a paso.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_adam,am_michael",
-            "name": "Adam & Michael (Mezcla Académica)",
-            "gender": "Masculino",
-            "accent": "American Blend",
-            "category": "⭐ Mezclas Educativas (Blends)",
-            "recommended": False,
-            "description": "Tono documental formal y robusto para conferencias o lecciones científicas.",
-            "engine": "kokoro"
-        },
-        # --- AMERICAN FEMALE (11 VOCES) ---
-        {
-            "id": "af_heart",
-            "name": "Heart (Insignia Kokoro)",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": True,
-            "description": "Voz insignia de Kokoro. Calidez humana insuperable y máxima naturalidad para e-learning.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_bella",
-            "name": "Bella",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Articulada, expresiva y didáctica.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_sarah",
-            "name": "Sarah",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Voz juvenil, amigable y entusiasta con ritmo cadencioso.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_nicole",
-            "name": "Nicole",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Tono paciente y profesional, perfecto para guías instructivas.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_alloy",
-            "name": "Alloy",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Tono versátil y directo, similar a asistentes modernos.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_aoede",
-            "name": "Aoede",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Tono suave, fluido y envolvente.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_jessica",
-            "name": "Jessica",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Locución clara y formal para presentaciones de negocios.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_kore",
-            "name": "Kore",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Tono calmo y seguro para lecturas reflexivas.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_nova",
-            "name": "Nova",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Energética, dinámica y motivacional.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_river",
-            "name": "River",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Tono moderno con textura acústica natural.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "af_sky",
-            "name": "Sky",
-            "gender": "Femenino",
-            "accent": "American",
-            "category": "American Female (US)",
-            "recommended": False,
-            "description": "Voz luminosa y positiva para módulos de bienvenida o síntesis.",
-            "engine": "kokoro"
-        },
-        # --- AMERICAN MALE (9 VOCES) ---
-        {
-            "id": "am_adam",
-            "name": "Adam (Recomendado)",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": True,
-            "description": "Narrador clásico estilo documental y conferencias académicas.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_michael",
-            "name": "Michael",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Voz madura y técnica para temas científicos.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_echo",
-            "name": "Echo",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Tono pausado, ideal para meditaciones o lecturas reflexivas.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_eric",
-            "name": "Eric",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Locución amena y conversacional para talleres prácticos.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_fenrir",
-            "name": "Fenrir",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Voz profunda y resonante para narraciones dramáticas.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_liam",
-            "name": "Liam",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Tono joven y dinámico para audiencias jóvenes o universitarias.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_onyx",
-            "name": "Onyx",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Voz grave y autorizada para síntesis conceptuales.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_puck",
-            "name": "Puck",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Voz ágil y espontánea.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "am_santa",
-            "name": "Santa",
-            "gender": "Masculino",
-            "accent": "American",
-            "category": "American Male (US)",
-            "recommended": False,
-            "description": "Tono cálido, festivo y característico.",
-            "engine": "kokoro"
-        },
-        # --- BRITISH FEMALE (4 VOCES) ---
-        {
-            "id": "bf_emma",
-            "name": "Emma (Académica UK)",
-            "gender": "Femenino",
-            "accent": "British",
-            "category": "British Female (UK)",
-            "recommended": False,
-            "description": "Acento británico elegante y pedagógico.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bf_alice",
-            "name": "Alice",
-            "gender": "Femenino",
-            "accent": "British",
-            "category": "British Female (UK)",
-            "recommended": False,
-            "description": "Voz británica articulada y refinada.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bf_isabella",
-            "name": "Isabella",
-            "gender": "Femenino",
-            "accent": "British",
-            "category": "British Female (UK)",
-            "recommended": False,
-            "description": "Voz británica formal y suave.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bf_lily",
-            "name": "Lily",
-            "gender": "Femenino",
-            "accent": "British",
-            "category": "British Female (UK)",
-            "recommended": False,
-            "description": "Tono joven británico, claro y melodioso.",
-            "engine": "kokoro"
-        },
-        # --- BRITISH MALE (4 VOCES) ---
-        {
-            "id": "bm_george",
-            "name": "George (Académico UK)",
-            "gender": "Masculino",
-            "accent": "British",
-            "category": "British Male (UK)",
-            "recommended": False,
-            "description": "Narrador clásico británico con presencia autorizada.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bm_daniel",
-            "name": "Daniel",
-            "gender": "Masculino",
-            "accent": "British",
-            "category": "British Male (UK)",
-            "recommended": False,
-            "description": "Voz británica sobria y catedrática.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bm_fable",
-            "name": "Fable",
-            "gender": "Masculino",
-            "accent": "British",
-            "category": "British Male (UK)",
-            "recommended": False,
-            "description": "Estilo cuenta-cuentos o narrador literario británico.",
-            "engine": "kokoro"
-        },
-        {
-            "id": "bm_lewis",
-            "name": "Lewis",
-            "gender": "Masculino",
-            "accent": "British",
-            "category": "British Male (UK)",
-            "recommended": False,
-            "description": "Voz británica precisa y clara.",
-            "engine": "kokoro"
-        },
-    ]
-}
+# Enable CORS for external agents and frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Kokoro voice IDs quick lookup set
-KOKORO_VOICES = {v["id"] for v_list in VOICES_CATALOG.values() for v in v_list if v.get("engine") == "kokoro"}
-# MiMo voice IDs quick lookup set
-MIMO_VOICES = {v["id"] for v_list in VOICES_CATALOG.values() for v in v_list if v.get("engine") == "mimo"}
-
-
-# =========================================================================
-#  Motor 1: Microsoft Edge Neural TTS (Español)
-# =========================================================================
-
-async def generate_edge_tts_audio(text: str, voice_name: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
-    """
-    Genera audio con Edge-TTS y ajusta la tasa de habla para cadencia educativa.
-    Retorna MP3 directamente (sin transcodificación) o WAV según se solicite.
-    """
-    # Pre-procesar etiquetas de pausa educativa [pausa] o [silencio]
-    clean_text = re.sub(r'\[(?:pausa|silencio)\]', '... ', text, flags=re.IGNORECASE)
-
-    # Calcular rate para Edge-TTS (+/- %)
-    rate_pct = int(round((speed - 1.0) * 100))
-    rate_str = f"{rate_pct:+d}%"
-
-    communicate = edge_tts.Communicate(clean_text, voice_name, rate=rate_str)
-    mp3_data = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            mp3_data += chunk["data"]
-
-    if not mp3_data:
-        raise ValueError("Edge-TTS no devolvió datos de audio.")
-
-    # Si se solicita MP3, devolver directamente el flujo de Edge-TTS (más rápido y ligero)
-    if audio_format.lower() == "mp3":
-        return mp3_data
-
-    # Si se solicita WAV, convertir MP3 a WAV en memoria
-    audio = AudioSegment.from_file(io.BytesIO(mp3_data), format="mp3")
-    wav_io = io.BytesIO()
-    audio.export(wav_io, format="wav")
-    return wav_io.getvalue()
-
-# =========================================================================
-#  Motor 2: Kokoro-82M TTS con GPU (Inglés y Español)
-# =========================================================================
-
-_kokoro_pipelines: Dict[str, Any] = {}
-_kokoro_lock = asyncio.Lock()
-
-def get_kokoro_pipeline(lang_code: str = 'a'):
-    """Inicialización bajo demanda (Lazy loading) de Kokoro en GPU o CPU."""
-    global _kokoro_pipelines
-    if lang_code not in _kokoro_pipelines:
-        import torch
-        from kokoro import KPipeline
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Inicializando Kokoro KPipeline (lang='{lang_code}', device='{device}')...")
-        _kokoro_pipelines[lang_code] = KPipeline(lang_code=lang_code, device=device)
-    return _kokoro_pipelines[lang_code]
-
-
-def generate_kokoro_audio(text: str, voice: str, speed: float = 0.95, audio_format: str = "mp3") -> bytes:
-    """
-    Genera audio con Kokoro-82M a 24000 Hz. Exporta en MP3 (192kbps) o WAV 16-bit.
-    Soporta voces individuales y mezclas separadas por comas (ej. 'af_bella,af_sarah' o 'ef_dora,af_sarah').
-    """
-    import torch
-    import soundfile as sf
-    import numpy as np
-
-    # Pre-procesar pausas para guiones
-    clean_text = re.sub(r'\[(?:pausa|pause|silence)\]', '... ', text, flags=re.IGNORECASE)
-
-    # Limpiar y normalizar lista de voces para soportar mezclas arbitrarias con o sin espacios
-    cleaned_voices = ",".join(v.strip() for v in voice.split(",") if v.strip())
-    first_voice = cleaned_voices.split(",")[0] if cleaned_voices else "af_heart"
-
-    # Detectar si la voz es en español ('e'), británica ('b') o americana ('a')
-    if first_voice.startswith(('ef_', 'em_')) or any(v.strip().startswith(('ef_', 'em_')) for v in cleaned_voices.split(',')):
-        lang_code = 'e'
-    elif first_voice.startswith('b'):
-        lang_code = 'b'
-    else:
-        lang_code = 'a'
-
-    pipeline = get_kokoro_pipeline(lang_code)
-
-    generator = pipeline(clean_text, voice=cleaned_voices, speed=speed, split_pattern=r'\n+')
-    audio_chunks = []
-    for _, _, audio in generator:
-        if audio is not None:
-            audio_chunks.append(audio)
-
-    if not audio_chunks:
-        raise ValueError("Kokoro no devolvió datos de audio.")
-
-    full_audio = torch.cat(
-        [torch.from_numpy(c) if not isinstance(c, torch.Tensor) else c for c in audio_chunks],
-        dim=0
-    ).numpy()
-
-    # Si se solicita MP3, convertir PCM a MP3 a 192 kbps
-    if audio_format.lower() == "mp3":
-        # Escalar de float [-1.0, 1.0] a int16
-        audio_int16 = (np.clip(full_audio, -1.0, 1.0) * 32767).astype(np.int16)
-        audio_seg = AudioSegment(
-            audio_int16.tobytes(),
-            frame_rate=24000,
-            sample_width=2,
-            channels=1
-        )
-        mp3_io = io.BytesIO()
-        audio_seg.export(mp3_io, format="mp3", bitrate="192k")
-        return mp3_io.getvalue()
-
-    # Si se solicita WAV
-    wav_io = io.BytesIO()
-    sf.write(wav_io, full_audio, 24000, format='WAV', subtype='PCM_16')
-    return wav_io.getvalue()
-
-# =========================================================================
-#  Motor 3: Xiaomi MiMo TTS v2.5 (Cloud con Modo Director y Audio Tags)
-# =========================================================================
-
-def get_mimo_api_key() -> Optional[str]:
-    """Obtiene la clave de API de MiMo desde el entorno o archivo .env."""
-    key = os.environ.get("MIMO_API_KEY")
-    if not key:
-        env_file = os.path.join(WORKSPACE_DIR, ".env")
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("MIMO_API_KEY="):
-                        key = line.split("=", 1)[1].strip()
-                        os.environ["MIMO_API_KEY"] = key
-                        break
-    return key
-
-
-def generate_mimo_audio(
-    text: str,
-    voice_name: str,
-    speed: float = 0.95,
-    audio_format: str = "mp3",
-    style_prompt: Optional[str] = None
-) -> bytes:
-    """
-    Genera audio usando la API de Xiaomi MiMo Speech Synthesis v2.5.
-    Soporta Modo Director (style_prompt) y Audio Tags ([laughter], [sigh], etc.).
-    Devuelve audio en formato MP3 (192 kbps) o WAV PCM 16-bit.
-    """
-    import base64
-    import json
-    import urllib.request
-    import urllib.error
-
-    api_key = get_mimo_api_key()
-    if not api_key:
-        raise ValueError("No se encontró MIMO_API_KEY configurada en el archivo .env ni en las variables de entorno.")
-
-    # Normalizar nombre de la voz: remover prefijo 'mimo-' si existe
-    clean_voice = voice_name
-    if clean_voice.lower().startswith("mimo-"):
-        clean_voice = clean_voice[5:]
-    elif clean_voice.lower().startswith("mimo_"):
-        clean_voice = clean_voice[5:]
-
-    if not clean_voice:
-        clean_voice = "Chloe"
-
-    url = "https://api.xiaomimimo.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    # Construir mensajes:
-    # role: assistant -> Texto a sintetizar (puede incluir tags [laughter], [sigh], etc.)
-    # role: user -> Instrucciones de emoción/estilo para el Modo Director
-    messages = []
-    if style_prompt and style_prompt.strip():
-        messages.append({"role": "user", "content": style_prompt.strip()})
-    else:
-        messages.append({"role": "user", "content": "Clear, natural and fluent speech."})
-
-    messages.append({"role": "assistant", "content": text})
-
-    payload = {
-        "model": "mimo-v2.5-tts",
-        "messages": messages,
-        "audio": {
-            "format": "wav",
-            "voice": clean_voice
-        }
-    }
-
-    req_data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=req_data, headers=headers, method="POST")
-
-    try:
-        with urllib.request.urlopen(req, timeout=35) as resp:
-            resp_body = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as err:
-        err_msg = err.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"Error HTTP en Xiaomi MiMo API ({err.code}): {err_msg}")
-    except Exception as exc:
-        raise RuntimeError(f"Fallo al conectar con Xiaomi MiMo API: {str(exc)}")
-
-    choices = resp_body.get("choices", [])
-    if not choices:
-        raise RuntimeError(f"Xiaomi MiMo no retornó elecciones de audio: {resp_body}")
-
-    audio_b64 = choices[0].get("message", {}).get("audio", {}).get("data")
-    if not audio_b64:
-        raise RuntimeError(f"Xiaomi MiMo no devolvió datos de audio en la respuesta: {resp_body}")
-
-    wav_bytes = base64.b64decode(audio_b64)
-
-    # Si se solicita MP3, convertir WAV a MP3 a 192 kbps
-    if audio_format.lower() == "mp3":
-        audio_seg = AudioSegment.from_file(io.BytesIO(wav_bytes), format="wav")
-        mp3_io = io.BytesIO()
-        audio_seg.export(mp3_io, format="mp3", bitrate="192k")
-        return mp3_io.getvalue()
-
-    return wav_bytes
 
 # =========================================================================
 #  API Endpoints
@@ -1029,7 +120,7 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = None          # Ej: "es-MX-JorgeNeural", "af_heart" o "mimo-Chloe"
     speaker_wav: Optional[str] = None    # Compatibilidad previa ("es-MX-JorgeNeural.wav")
     language: Optional[str] = None       # "es" o "en"
-    speed: Optional[float] = 0.95        # 0.95x = Ritmo pedagógico recomendado
+    speed: Optional[float] = Field(default=0.95, ge=0.25, le=3.0)  # 0.95x = Ritmo pedagógico recomendado
     format: Optional[str] = "mp3"        # "mp3" (recomendado, ~10x más ligero) o "wav"
     style_prompt: Optional[str] = None   # Instrucciones de tono/emoción para Xiaomi MiMo (Modo Director)
     # Compatibilidad previa para parámetros de XTTS (no requeridos pero tolerados)
@@ -1041,14 +132,14 @@ class TTSRequest(BaseModel):
     remove_ceceo: Optional[bool] = None
 
 
-
 @app.post("/api/tts")
 async def tts_generate(req: TTSRequest):
     """
     Endpoint unificado de síntesis de voz:
-    - Si la voz es de Kokoro (o idioma 'en'): Procesa en GPU con Kokoro-82M.
-    - Si la voz es de Edge-TTS (o idioma 'es'): Procesa con Microsoft Edge Neural.
-    Retorna el stream binario de audio en formato MP3 (por omisión) o WAV.
+    - Xiaomi MiMo: Si la voz es MiMo o prefijo 'mimo-'.
+    - Kokoro-82M: Si la voz es Kokoro o idioma 'en' o mezclas.
+    - Edge Neural: Si la voz es de Edge-TTS o idioma 'es'.
+    Retorna el stream binario de audio en formato MP3 o WAV.
     """
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="El campo 'text' no puede estar vacío.")
@@ -1064,7 +155,6 @@ async def tts_generate(req: TTSRequest):
     if not voice_id:
         voice_id = "af_heart" if lang == "en" else "es-MX-JorgeNeural"
 
-    # Determinar velocidad pedagógica (por omisión 0.95x para lecciones claras)
     speed = req.speed if req.speed is not None else 0.95
 
     # Determinar formato de salida (mp3 por omisión)
@@ -1131,6 +221,114 @@ async def tts_generate(req: TTSRequest):
         raise HTTPException(status_code=500, detail=f"Error en motor Edge-TTS: {str(e)}")
 
 
+class SubtitleTTSRequest(BaseModel):
+    subtitle_text: str
+    voice: Optional[str] = None          # Ej: "es-MX-JorgeNeural", "af_heart", "mimo-Chloe"
+    language: Optional[str] = None       # "es" o "en"
+    speed: Optional[float] = Field(default=1.0, ge=0.25, le=3.0)         # Velocidad base de locución
+    mode: Optional[str] = "synced"       # "synced" (alineado a timestamps) o "continuous" (audiolibro corrido)
+    format: Optional[str] = "mp3"        # "mp3" o "wav"
+    style_prompt: Optional[str] = None   # Estilo/emoción para Xiaomi MiMo
+    max_speed_factor: Optional[float] = Field(default=1.35, ge=1.0, le=2.5) # Límite de aceleración si la frase excede la ventana
+
+
+@app.post("/api/tts/subtitle")
+async def tts_subtitle_json(req: SubtitleTTSRequest):
+    """
+    Convierte subtítulos (SRT o WebVTT) provistos como texto JSON a audio.
+    Soporta:
+    - Modo 'synced': Monta las frases en los timestamps exactos con silencios y time-stretch preventivo.
+    - Modo 'continuous': Extrae el texto limpio y sintetiza una narración fluida y corrida.
+    """
+    if not req.subtitle_text or not req.subtitle_text.strip():
+        raise HTTPException(status_code=400, detail="El contenido de 'subtitle_text' no puede estar vacío.")
+
+    parsed = parse_subtitles(req.subtitle_text)
+    if not parsed:
+        raise HTTPException(
+            status_code=400,
+            detail="No se encontraron subtítulos válidos. Verifica el formato SRT (00:00:01,000 --> 00:00:04,000) o WebVTT."
+        )
+
+    # Resolver voz
+    voice_id = req.voice.strip() if req.voice else None
+    lang = (req.language or "").lower().strip()
+    if not voice_id:
+        voice_id = "af_heart" if lang == "en" else "es-MX-JorgeNeural"
+
+    speed = req.speed if req.speed is not None else 1.0
+    audio_format = (req.format or "mp3").lower().strip()
+    if audio_format not in ["mp3", "wav"]:
+        audio_format = "mp3"
+    media_type = "audio/mpeg" if audio_format == "mp3" else "audio/wav"
+
+    mode = (req.mode or "synced").lower().strip()
+    max_speed = req.max_speed_factor if req.max_speed_factor is not None else 1.35
+
+    try:
+        print(f"[TTS Subtitle] Procesando {len(parsed)} subtítulos (Modo: {mode}, Voz: {voice_id}, Formato: {audio_format})...")
+        if mode == "continuous":
+            audio_bytes = await generate_continuous_subtitle_audio(
+                parsed, voice_id, speed=speed, audio_format=audio_format, style_prompt=req.style_prompt
+            )
+        else:
+            audio_bytes = await generate_synced_subtitle_audio(
+                parsed, voice_id, speed=speed, audio_format=audio_format, style_prompt=req.style_prompt, max_speed_factor=max_speed
+            )
+
+        safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', voice_id)
+        return Response(
+            content=audio_bytes,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=subtitles_{mode}_{safe_filename}.{audio_format}",
+                "X-Subtitle-Count": str(len(parsed))
+            }
+        )
+    except Exception as e:
+        print(f"[TTS Subtitle Error]: {e}")
+        raise HTTPException(status_code=500, detail=f"Error procesando subtítulos: {str(e)}")
+
+
+@app.post("/api/tts/subtitle/file")
+async def tts_subtitle_file(
+    file: UploadFile = File(...),
+    voice: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+    speed: Optional[float] = Form(1.0),
+    mode: Optional[str] = Form("synced"),
+    format: Optional[str] = Form("mp3"),
+    style_prompt: Optional[str] = Form(None),
+    max_speed_factor: Optional[float] = Form(1.35)
+):
+    """
+    Recibe un archivo de subtítulos (.srt o .vtt) mediante subida de formulario
+    y devuelve la pista de audio generada (sincronizada o continua).
+    """
+    raw_content = await file.read()
+    if len(raw_content) > MAX_SUBTITLE_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"El archivo de subtítulos supera el límite de {MAX_SUBTITLE_FILE_SIZE // (1024 * 1024)} MB."
+        )
+    try:
+        text_content = raw_content.decode("utf-8")
+    except UnicodeDecodeError:
+        text_content = raw_content.decode("latin-1", errors="replace")
+
+    req = SubtitleTTSRequest(
+        subtitle_text=text_content,
+        voice=voice,
+        language=language,
+        speed=speed,
+        mode=mode,
+        format=format,
+        style_prompt=style_prompt,
+        max_speed_factor=max_speed_factor
+    )
+    return await tts_subtitle_json(req)
+
+
 # =========================================================================
 #  Endpoints de Compatibilidad Silenciosa (Para llamadas heredadas)
 # =========================================================================
@@ -1146,7 +344,7 @@ def get_legacy_speakers():
 
 @app.post("/api/server/start")
 def dummy_start_server():
-    return {"success": True, "message": "Motores Edge-TTS y Kokoro listos para síntesis."}
+    return {"success": True, "message": "Motores Edge-TTS, Kokoro y MiMo listos para síntesis."}
 
 @app.post("/api/server/stop")
 def dummy_stop_server():
